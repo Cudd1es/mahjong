@@ -24,7 +24,7 @@ def play_round(round_number):
 
     for turn in range(round_number):
         current_player = players[turn%4]
-        print(f"\n round {turn} {current_player.name} ({current_player.wind})'s turn---")
+        print(f"\nround {turn} {current_player.name} ({current_player.wind})'s turn---")
 
         if turn != 0:
             drawn_tile = current_player.draw(wall)
@@ -40,5 +40,10 @@ def play_round(round_number):
 
         print(f"{current_player.name} ({current_player.wind})'s hand: {current_player.hand}")
 
+        # print discarded zone
+        print(f"\ndiscard zone-----")
+        for p in players:
+            print(f"{p.name} ({p.wind}): {p.discards}")
 
-play_round(4)
+play_round(16)
+
