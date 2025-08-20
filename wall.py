@@ -42,7 +42,7 @@ def deal_tiles(wall, num_players=4):
 
     return hands, remaining_wall
 
-def tile_sort_rule(tile:Tile):
+def tile_sort_key(tile:Tile):
     """define the rule of tile sorting"""
 
     suit_order = {'m':0, 'p':1, 's':2, 'z':3}
@@ -60,4 +60,4 @@ def tile_sort_rule(tile:Tile):
     return (suit_rank, honor_order[tile.value])
 
 def sort_hand(hand:list):
-    return sorted(hand, key=tile_sort_rule)
+    return sorted(hand, key=tile_sort_key)
