@@ -46,18 +46,15 @@ def tile_sort_key(tile:Tile):
     """define the rule of tile sorting"""
 
     suit_order = {'m':0, 'p':1, 's':2, 'z':3}
+    honor_order = {'E':1, 'S':2, 'W':3, 'N':4, 'P':5, 'F':6, 'C':7}
 
     suit_rank = suit_order[tile.suit]
 
     if tile.suit in ('m', 'p', 's'):
-        value = tile.value
-        if value == 0:
-            return (suit_rank, 5 - 0.5)
-        return (suit_rank, value)
+        if tile.value == 0:
+            return suit_rank, 5 - 0.5
+        return suit_rank, tile.value
+    return suit_rank, honor_order[tile.value]
 
-    honor_order = {'E':1, 'S':2, 'W':3, 'N':4, 'P':5, 'F':6, 'C':7}
-
-    return (suit_rank, honor_order[tile.value])
-
-def sort_hand(hand:list):
+def sort_hand(hand:list[Tile]):
     return sorted(hand, key=tile_sort_key)

@@ -1,15 +1,17 @@
 from wall import *
 from player import *
+import random
 
 def play_round(round_number = -1):
     wall = create_wall()
     shuffle_wall(wall)
 
+    # set human player as P1 and rest player are AI
     players = [
-        Player("P1", "E"),
-        Player("P2", "S"),
-        Player("P3", "W"),
-        Player("P4", "N")
+        HumanPlayer("P1", "E"),
+        AIPlayer("P2", "S"),
+        AIPlayer("P3", "W"),
+        AIPlayer("P4", "N")
     ]
 
     hands, wall = deal_tiles(wall, 4)
@@ -41,7 +43,7 @@ def play_round(round_number = -1):
             current_player.sort_hand()
             print(f"Hand: {current_player.hand}")
 
-            discard_index = random.randint(0, len(current_player.hand) - 1)
+            discard_index = current_player.decide_discard()
             #print(f"Discard index {discard_index} out of {len(current_player.hand) - 1}--")
             discarded = current_player.discard(discard_index)
             print(f"{current_player.name} discarded {discarded}")
@@ -63,7 +65,7 @@ def play_round(round_number = -1):
         current_player.sort_hand()
         print(f"Hand after draw: {current_player.hand}")
 
-        discard_index = random.randint(0, len(current_player.hand)-1)
+        discard_index = current_player.decide_discard()
         #print(f"Discard index {discard_index} out of {len(current_player.hand)-1}--")
         discarded = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded}")
