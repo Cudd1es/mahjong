@@ -42,7 +42,7 @@ def play_round(round_number = -1):
             print(f"Hand: {current_player.hand}")
 
             discard_index = random.randint(0, len(current_player.hand) - 1)
-            print(f"Discard index {discard_index} out of {len(current_player.hand) - 1}--")
+            #print(f"Discard index {discard_index} out of {len(current_player.hand) - 1}--")
             discarded = current_player.discard(discard_index)
             print(f"{current_player.name} discarded {discarded}")
 
@@ -64,7 +64,7 @@ def play_round(round_number = -1):
         print(f"Hand after draw: {current_player.hand}")
 
         discard_index = random.randint(0, len(current_player.hand)-1)
-        print(f"Discard index {discard_index} out of {len(current_player.hand)-1}--")
+        #print(f"Discard index {discard_index} out of {len(current_player.hand)-1}--")
         discarded = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded}")
 
