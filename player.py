@@ -31,6 +31,9 @@ class Player:
     def sort_hand(self):
         self.hand = sort_hand(self.hand)
 
+    def sort_melds(self):
+        self.melds = sort_hand(self.melds)
+
 class AIPlayer(Player):
     def __init__(self, name:str, wind):
         super().__init__(name, wind)
