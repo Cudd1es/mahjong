@@ -25,4 +25,13 @@ class Tile:
     def __hash__(self):
         return hash((self.suit, self.value))
 
-
+    def to_colored_str(self):
+        suit_color = {
+        'm': '\033[31m',  # Red
+        'p': '\033[33m',  # Yellow
+        's': '\033[32m',  # Green
+        'z': '\033[34m',  # Blue
+        }
+        color = suit_color.get(self.suit, '\033[0m')
+        s = self.__repr__()
+        return f"{color}{s}\033[0m"

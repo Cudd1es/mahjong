@@ -4,6 +4,8 @@ import random
 from hand_checker import is_win_hand
 from melds import can_chi, can_pon, can_kan
 
+def colored(tiles):
+    return " ".join([t.to_colored_str() for t in tiles])
 
 def check_win(player, source, tile=None):
     """
@@ -73,7 +75,7 @@ def check_melds(players, discarder_idx, discarded_tile):
             continue  # AI players skip melds
         if can_kan(p.hand, discarded_tile):
             while True:
-                print(f"Your hand: {sort_hand(p.hand)}")
+                print(f"Your hand: {colored(sort_hand(p.hand))}")
                 choice = input(f"{p.name}, do you want to Kan {discarded_tile}? ([Y]/n): ")
                 if choice.strip().lower() in ["y", ""]:
                     meld_type = 1  # kan
@@ -107,7 +109,7 @@ def check_melds(players, discarder_idx, discarded_tile):
             continue  # AI players skip melds
         if can_pon(p.hand, discarded_tile):
             while True:
-                print(f"Your hand: {sort_hand(p.hand)}")
+                print(f"Your hand: {colored(sort_hand(p.hand))}")
                 choice = input(f"{p.name}, do you want to Pon {discarded_tile}? ([Y]/n): ")
                 if choice.strip().lower() in ["y", ""]:
                     meld_type = 2  # pon
@@ -141,7 +143,7 @@ def check_melds(players, discarder_idx, discarded_tile):
         if chi_options:
             chosen_option = None
             while True:
-                print(f"Your hand: {sort_hand(chi_player.hand)}")
+                print(f"Your hand: {colored(sort_hand(chi_player.hand))}")
                 choice = input(f"{chi_player.name}, do you want to Chi {discarded_tile}? ([Y]/n): ")
                 if choice.strip().lower() in ["y", ""]:
                     meld_type = 3 # chi
@@ -227,8 +229,8 @@ def play_round():
             if check_win(current_player, "draw"):
                 return
 
-        print(f"Melds: {current_player.melds}")
-        print(f"Hand: {current_player.hand}")
+        print(f"Melds: {colored(current_player.melds)}")
+        print(f"Hand: {colored(current_player.hand)}")
 
         discard_index = current_player.decide_discard()
         discarded = current_player.discard(discard_index)
@@ -257,7 +259,7 @@ def play_round():
                     return
 
             # discard the tile after claiming the meld
-            print(f"Hand after meld: {meld_player.hand}")
+            print(f"Hand after meld: {colored(meld_player.hand)}")
             discard_index = meld_player.decide_discard()
             discarded2 = meld_player.discard(discard_index)
             print(f"{meld_player.name} discarded {discarded2} after meld")

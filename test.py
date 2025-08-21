@@ -1,4 +1,3 @@
-from tiles import Tile
 from hand_checker import is_win_hand
 from tiles import Tile
 
@@ -33,3 +32,13 @@ print(parse_hand(hand1))  # 会自动调用 __repr__，输出类似 [1m, 2m, 3m,
 hand1 = parse_hand(hand1)
 hand2 = parse_hand(hand2)
 print(is_win_hand(hand2))
+
+
+tile = Tile("s", 5)
+print(f")({tile.to_colored_str()}")
+
+print(f"{hand1[5].to_colored_str()}")
+print(f"{hand2[5]}")
+print(f"{i}" for i, t in enumerate(hand2))
+for i, t in enumerate(hand1):
+    print(f"{i}) {t.to_colored_str()}")
