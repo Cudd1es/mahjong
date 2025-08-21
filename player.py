@@ -9,6 +9,7 @@ class Player:
         self.hand = []
         self.discards = []
         self.score = 25000
+        self.is_human = False
 
     def draw(self, wall):
         if wall:
@@ -30,11 +31,17 @@ class Player:
         self.hand = sort_hand(self.hand)
 
 class AIPlayer(Player):
+    def __init__(self, name:str, wind):
+        super().__init__(name, wind)
+        self.is_human = False
     def decide_discard(self):
         """strategy for AI to discard"""
         return random.randint(0, len(self.hand) - 1)
 
 class HumanPlayer(Player):
+    def __init__(self, name:str, wind):
+        super().__init__(name, wind)
+        self.is_human = True
     def decide_discard(self):
         """discard on human input"""
         while True:
