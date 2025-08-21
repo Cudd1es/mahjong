@@ -38,8 +38,8 @@ class HumanPlayer(Player):
     def decide_discard(self):
         """discard on human input"""
         while True:
-            formatted_sorted_hand = [f"({i}){tile}" for i, tile in enumerate(self.hand)]
-            print(f"your hand: {formatted_sorted_hand}")
+            formatted_hand = [f"({i}){tile}" for i, tile in enumerate(self.hand)]
+            print(f"your hand: {formatted_hand}")
             user_input = input("choose a tile index to discard: ")
             # check the input
             if not user_input.isdigit():

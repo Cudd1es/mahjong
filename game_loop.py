@@ -1,6 +1,7 @@
 from wall import *
 from player import *
 import random
+from hand_checker import is_win_hand
 
 def play_round(round_number = -1):
     wall = create_wall()
@@ -33,6 +34,8 @@ def play_round(round_number = -1):
             current_player = players[turn%4]
             print(f"\nround {turn} {current_player.name} ({current_player.wind})'s turn---")
 
+            current_player.sort_hand()
+
             if turn != 0:
                 drawn_tile = current_player.draw(live_wall)
                 if drawn_tile is None:
@@ -40,7 +43,6 @@ def play_round(round_number = -1):
                     break
                 print(f"{current_player.name} ({current_player.wind}) drew {drawn_tile}")
 
-            current_player.sort_hand()
             print(f"Hand: {current_player.hand}")
 
             discard_index = current_player.decide_discard()
@@ -58,12 +60,16 @@ def play_round(round_number = -1):
         current_player = players[turn%4]
         print(f"\nround {turn} {current_player.name} ({current_player.wind})'s turn---")
 
+        current_player.sort_hand()
         if turn != 0:
             drawn_tile = current_player.draw(wall)
             print(f"{current_player.name} ({current_player.wind}) drew {drawn_tile}")
 
-        current_player.sort_hand()
+
         print(f"Hand after draw: {current_player.hand}")
+        if is_win_hand(current_player.hand):
+            print(f"{current_player.name} ({current_player.wind}) won!")
+            return
 
         discard_index = current_player.decide_discard()
         #print(f"Discard index {discard_index} out of {len(current_player.hand)-1}--")
