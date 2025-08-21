@@ -8,6 +8,7 @@ class Player:
         self.wind = wind
         self.hand = []
         self.discards = []
+        self.melds = []
         self.score = 25000
         self.is_human = False
 

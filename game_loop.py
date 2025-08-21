@@ -2,6 +2,7 @@ from wall import *
 from player import *
 import random
 from hand_checker import is_win_hand
+from melds import can_chi, can_pon, can_kan
 
 
 def check_win(player, hand, source, tile=None):
