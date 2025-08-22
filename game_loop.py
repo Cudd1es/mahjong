@@ -229,7 +229,7 @@ def play_round():
             if check_win(current_player, "draw"):
                 return
 
-        print(f"Melds: {colored(current_player.melds)}")
+        print(f"Melds: {current_player.melds}")
         print(f"Hand: {colored(current_player.hand)}")
 
         discard_index = current_player.decide_discard()

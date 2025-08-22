@@ -4,6 +4,7 @@ from hand_checker import normalize_red
 def can_chi(hand, tile):
     # normalize red 5 tiles
     hand = [normalize_red(tile) for tile in hand]
+    tile = normalize_red(tile)
     if tile.suit == 'z':
         return []
 
@@ -24,10 +25,12 @@ def can_chi(hand, tile):
 def can_pon(hand, tile):
     # normalize red 5 tiles
     hand = [normalize_red(tile) for tile in hand]
+    tile = normalize_red(tile)
     return sum(1 for t in hand if t == tile) >= 2
 
 def can_kan(hand, tile):
     hand = [normalize_red(tile) for tile in hand]
+    tile = normalize_red(tile)
     return sum(1 for t in hand if t == tile) >= 3
 
 def can_ankan(hand):
