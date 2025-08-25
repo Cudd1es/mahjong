@@ -7,184 +7,99 @@ from melds import can_chi, can_pon, can_kan
 def colored(tiles):
     return " ".join([t.to_colored_str() for t in tiles])
 
-def check_win(player, source, tile=None):
+def check_responses(players, discarder_idx, discarded_tile):
     """
-    Check if a player wants to declare a win (Ron or Tsumo or Tenhou).
-    This function now supports a unified interaction style as the meld checker.
-
-    Args:
-        player: the Player object (AI or Human).
-        hand: the current hand (list of Tile).
-        source: "draw" (Tsumo), "discard" (Ron), or "tenhou".
-        tile: the winning tile if Ron.
-
-    Returns:
-        True if the player declares win, False otherwise.
+    Check if any human player wants to declare Ron, Kan, Pon, or Chi.
+    Only one player can respond; priority: Ron > Kan > Pon > Chi.
+    Returns ('ron'/'kan'/'pon'/'chi'/None, player_idx, details)
     """
-    new_hand = player.hand[:]
-    if player.melds:
-        for m in player.melds:
-            new_hand += m
-    if tile:
-        new_hand = new_hand + [tile]
-    if not is_win_hand(new_hand):
-        return False
-
-    if source == "draw":
-        msg = f"{player.name}, you can Tsumo! Do you want to win? ([Y]/n): "
-        win_type = "Tsumo"
-    elif source == "discard":
-        msg = f"{player.name}, you can Ron with {tile}! Do you want to win? ([Y]/n): "
-        win_type = "Ron"
-    elif source == "tenhou":
-        msg = f"{player.name}, you have Tenhou! Do you want to win? ([Y]/n): "
-        win_type = "Tenhou"
-    else:
-        raise ValueError(f"Invalid source type: {source}")
-
-    if player.is_human:
-        while True:
-            choice = input(msg).strip().lower()
-            if choice.strip().lower() in ["y", ""]:
-                print(f"{player.name} declared {win_type}!")
-                return True
-            elif choice.strip().lower() == 'n':
-                return False
-            else:
-                print("Invalid input, please choose from y or n.")
-    else:
-        print(f"{player.name} declared {win_type}!")
-        return True
-
-def check_melds(players, discarder_idx, discarded_tile):
-    """
-    Checks if any human player wants to claim the discarded tile for Kan, Pon, or Chi.
-    Returns (meld_made: bool, claiming_player_idx: int, meld_type: int, meld_tiles: list of Tile objects)
-    meld_type: 0: Skipped 1: Kan, 2: Pon, 3: Chi.
-    """
-    meld_made = False
-    claiming_player_idx = discarder_idx
-    meld_type = 0
-    meld_tiles = []
-
-    # Kan
-    for i in range(1, 4):
-        idx = (discarder_idx + i) % 4 # other 3 players in order
-        p = players[idx]
-        if not p.is_human:
-            continue  # AI players skip melds
-        if can_kan(p.hand, discarded_tile):
-            while True:
-                print(f"Your hand: {colored(sort_hand(p.hand))}")
-                choice = input(f"{p.name}, do you want to Kan {discarded_tile}? ([Y]/n): ")
-                if choice.strip().lower() in ["y", ""]:
-                    meld_type = 1  # kan
-                    meld_tiles = [discarded_tile]  # add discarded tile to meld tiles
-                    print(f"{p.name} claims Kan with {discarded_tile}!")
-                    removed = 0
-                    new_hand = []
-                    for t in p.hand:
-                        if t == discarded_tile and removed < 3:
-                            removed += 1
-                            meld_tiles.append(t) # add hand tiles
-                        else:
-                            new_hand.append(t)
-                    p.hand = new_hand
-                    p.melds.append([discarded_tile] * 4)
-                    meld_made = True
-                    claiming_player_idx = idx
-                    return meld_made, claiming_player_idx, meld_type, meld_tiles
-                elif choice.strip().lower() == 'n':
-                    meld_made = False
-                    meld_type = 0
-                    return meld_made, claiming_player_idx, meld_type, meld_tiles
-                else:
-                    print("Invalid input, please choose from y or n.")
-
-    # Pon
     for i in range(1, 4):
         idx = (discarder_idx + i) % 4
         p = players[idx]
         if not p.is_human:
-            continue  # AI players skip melds
+            continue
+        options = []
+        # Ron
+        tmp_hand = (p.hand[:])
+        if discarded_tile:
+            tmp_hand += [discarded_tile]
+        if p.melds:
+            for m in p.melds:
+                tmp_hand += m
+        if is_win_hand(tmp_hand):
+            options.append('ron')
+        # Kan
+        if can_kan(p.hand, discarded_tile):
+            options.append('kan')
+        # Pon
         if can_pon(p.hand, discarded_tile):
-            while True:
-                print(f"Your hand: {colored(sort_hand(p.hand))}")
-                choice = input(f"{p.name}, do you want to Pon {discarded_tile}? ([Y]/n): ")
-                if choice.strip().lower() in ["y", ""]:
-                    meld_type = 2  # pon
-                    meld_tiles = [discarded_tile]  # add discarded tile to meld tiles
-                    print(f"{p.name} claims Pon with {discarded_tile}!")
-                    removed = 0
-                    new_hand = []
-                    for t in p.hand:
-                        if t == discarded_tile and removed < 2:
-                            removed += 1
-                            meld_tiles.append(t) # add hand tiles
-                        else:
-                            new_hand.append(t)
-                    p.hand = new_hand
-                    p.melds.append([discarded_tile] * 3)
-                    meld_made = True
-                    claiming_player_idx = idx
-                    return meld_made, claiming_player_idx, meld_type, meld_tiles
-                elif choice.strip().lower() == 'n':
-                    meld_made = False
-                    meld_type = 0
-                    return meld_made, claiming_player_idx, meld_type, meld_tiles
-                else:
-                    print("Invalid input, please choose from y or n.")
-
-    # Chi
-    chi_player_idx = (discarder_idx + 1) % 4
-    chi_player = players[chi_player_idx]
-    if chi_player.is_human:
-        chi_options= can_chi(chi_player.hand, discarded_tile)
-        if chi_options:
-            chosen_option = None
-            while True:
-                print(f"Your hand: {colored(sort_hand(chi_player.hand))}")
-                choice = input(f"{chi_player.name}, do you want to Chi {discarded_tile}? ([Y]/n): ")
-                if choice.strip().lower() in ["y", ""]:
-                    meld_type = 3 # chi
-                    meld_tiles = [discarded_tile]  # add discarded tile to meld tiles
-                    while True:
-                        print(f"{chi_player.name}, you can Chi {discarded_tile} with:")
-                        for idx, opt in enumerate(chi_options):
-                            print(f"  {idx}: {opt} + {discarded_tile}")
-                        sel = input("Choose option (number) or n to skip: ").strip()
-                        if sel.isdigit() and int(sel) in range(len(chi_options)):
-                            chosen_option = chi_options[int(sel)]
-                            break
-                        elif sel.strip().lower() == "n":
-                            meld_made = False
-                            return meld_made, claiming_player_idx, meld_type, meld_tiles
-                        else:
-                            print("Invalid input, please choose option (number) or n.")
-                    if chosen_option:
-                        print(f"{chi_player.name} claims Chi {discarded_tile} with {chosen_option}!")
-                        for chi_tile in chosen_option:
-                            chi_player.hand.remove(chi_tile)
-                            meld_tiles.append(chi_tile) # add hand tile to meld tiles
-                        chi_player.melds.append(sort_hand(list(chosen_option) + [discarded_tile]))
-                        meld_made = True
-                        claiming_player_idx = chi_player_idx
-                        return meld_made, claiming_player_idx, meld_type, meld_tiles
-                elif choice.strip().lower() == 'n':
-                    meld_made = False
-                    return meld_made, claiming_player_idx, meld_type, meld_tiles
-                else:
-                    print("Invalid input, please choose from y or n.")
-
-    # No meld was claimed
-    return meld_made, claiming_player_idx, meld_type, meld_tiles
+            options.append('pon')
+        # Chi
+        chi_options = []
+        if i == 1: # only next player can chi
+            chi_options = can_chi(p.hand, discarded_tile)
+            if chi_options:
+                options.append('chi')
+        if not options:
+            continue
+        while True:
+            print(f"{p.name}, you can: {', '.join(options)} on {discarded_tile}")
+            print(f"your hand: {colored(sort_hand(p.hand))}")
+            choice = input("Type [1]ron, [2]kan, [3]pon, [4]chi or 'n' to skip: ").strip().lower()
+            if choice == '1' and 'ron' in options:
+                print(f"{p.name} declares Ron and wins!")
+                return 'ron', idx, None
+            elif choice == '2' and 'kan' in options:
+                print(f"{p.name} claims Kan with {discarded_tile}!")
+                tiles = [discarded_tile]
+                removed = 0
+                new_hand = []
+                for t in p.hand:
+                    if t == discarded_tile and removed < 3:
+                        tiles.append(t)
+                        removed += 1
+                    else:
+                        new_hand.append(t)
+                p.hand = new_hand
+                p.melds.append([discarded_tile]*4)
+                return 'kan', idx, tiles
+            elif choice == '3' and 'pon' in options:
+                print(f"{p.name} claims Pon with {discarded_tile}!")
+                tiles = [discarded_tile]
+                removed = 0
+                new_hand = []
+                for t in p.hand:
+                    if t == discarded_tile and removed < 2:
+                        tiles.append(t)
+                        removed += 1
+                    else:
+                        new_hand.append(t)
+                p.hand = new_hand
+                p.melds.append([discarded_tile]*3)
+                return 'pon', idx, tiles
+            elif choice == '4' and 'chi' in options:
+                print(f"{p.name}, you can Chi {discarded_tile} with:")
+                for chi_idx, opt in enumerate(chi_options):
+                    print(f" {chi_idx+1}: {opt} + {discarded_tile}")
+                sel = input("choose option (number) or 'n' to skip: ").strip().lower()
+                if sel.isdigit() and int(sel) in range(1, len(chi_options)+1):
+                    chosen = chi_options[int(sel)-1]
+                    print(f"{p.name} claims Chi {discarded_tile} with {chosen}!")
+                    for chi_tile in chosen:
+                        p.hand.remove(chi_tile)
+                    p.melds.append(sort_hand(list(chosen) + [discarded_tile]))
+                    return 'chi', idx, chosen + [discarded_tile]
+                elif sel == 'n':
+                    continue
+            elif choice == 'n':
+                break
+            print("invalid input, please try again")
+    return None, discarder_idx, None
 
 def play_round():
     wall = create_wall()
     shuffle_wall(wall)
-
     kan_counter = 0 # game ends with 4 kans 四槓散了（スーカンサンラ）
-
 
     # set human player as P1 and rest player are AI
     players = [
@@ -208,7 +123,8 @@ def play_round():
 
     # check Tenhou
     for p in players:
-        if check_win(p, "tenhou"):
+        if is_win_hand(p.hand):
+            print(f"{p.name} wins by Tenhou!")
             return
 
     turn = 0
@@ -226,7 +142,8 @@ def play_round():
             print(f"{current_player.name} ({current_player.wind}) drew {drawn_tile}")
 
             # check Tsumo
-            if check_win(current_player, "draw"):
+            if is_win_hand(current_player.hand):
+                print(f"{current_player.name} wins by Tsumo!")
                 return
 
         print(f"Melds: {current_player.melds}")
@@ -236,42 +153,49 @@ def play_round():
         discarded = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded}")
 
-        # check if other players can Ron (win by discard)
-        for other_player in players:
-            if other_player != current_player:
-                if check_win(other_player, "discard", tile=discarded):
-                    return
-        # check Chi Pon Kan
-        meld_made, meld_player_idx, meld_type, meld_tiles = check_melds(players, current_player_idx, discarded)
-        if meld_made:
-            # update player melds, draw (for kan), discard, and change order
-            meld_player = players[meld_player_idx]
-            meld_player.sort_hand()
-            if meld_type == 1: # for kan, player needs draw a new tile from dead wall
-                kan_counter += 1
-                if kan_counter > 3: # 四槓散了（スーカンサンラ）
-                    print("四槓散了（スーカンサンラ）")
-                    return
-                drawn_tile2 = (meld_player.draw(dead_wall.pop())) # draw the last one from the wall
-                print(f"{meld_player.name} ({meld_player.wind}) drew {drawn_tile2}")
-                # Tsumo check
-                if check_win(meld_player, "draw"):
-                    return
-
+        # check response
+        response, responder_idx, response_details = check_responses(players, current_player_idx, discarded)
+        if response == 'ron':
+            print(f"{players[responder_idx].name} wins by Ron!")
+            return
+        elif response == 'kan':
+            kan_counter += 1
+            if kan_counter > 3: # 四槓散了（スーカンサンラ）
+                print("四槓散了（スーカンサンラ）")
+                return
+            kan_player = players[responder_idx]
+            drawn_tile2 = kan_player.draw(dead_wall.pop())
+            print(f"{kan_player.name} drew {drawn_tile2}")
+            # Tsumo check
+            if is_win_hand(kan_player.hand):
+                print(f"{kan_player.name} wins by Tsumo!")
+                return
             # discard the tile after claiming the meld
+            print(f"Hand after meld: {colored(kan_player.hand)}")
+            discard_index = kan_player.decide_discard()
+            discarded2 = kan_player.discard(discard_index)
+            print(f"{kan_player.name} discarded {discarded2} after meld")
+            # Ron check again
+            response2, responder_idx2, _ = check_responses(players, responder_idx, discarded2)
+            if response2 == 'ron':
+                print(f"{players[responder_idx2].name} wins by Ron!")
+                return
+            turn = responder_idx + 1
+            continue
+
+        elif response in ['pon', 'chi']:
+            meld_player = players[responder_idx]
             print(f"Hand after meld: {colored(meld_player.hand)}")
             discard_index = meld_player.decide_discard()
             discarded2 = meld_player.discard(discard_index)
             print(f"{meld_player.name} discarded {discarded2} after meld")
 
             # Ron check again
-            for other_player in players:
-                if other_player != meld_player:
-                    if check_win(other_player, "discard", tile=discarded2):
-                        return
-
-            # continue from the next player to the meld claimer
-            turn = meld_player_idx + 1
+            response2, responder_idx2, _ = check_responses(players, responder_idx, discarded2)
+            if response2 == 'ron':
+                print(f"{players[responder_idx2].name} wins by Ron!")
+                return
+            turn = responder_idx + 1
             continue
 
         if len(live_wall) == 0:
