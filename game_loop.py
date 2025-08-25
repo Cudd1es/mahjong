@@ -7,6 +7,28 @@ from melds import can_chi, can_pon, can_kan
 def colored(tiles):
     return " ".join([t.to_colored_str() for t in tiles])
 
+def ask_win(win_type, player):
+    if not player.is_human:
+        return True
+    else:
+        if win_type == "tsumo":
+            msg = f"{player.name}, you can Tsumo! Do you want to win? ([Y]/n): "
+        elif win_type == "tenhou":
+            msg = f"{player.name}, you have Tenhou! Do you want to win? ([Y]/n): "
+        else:
+            raise ValueError(f"Invalid source type: {win_type}")
+        while True:
+            choice = input(msg).strip().lower()
+            if choice.strip().lower() in ["y", ""]:
+                #print(f"{player.name} declared {win_type}!")
+                return True
+            elif choice.strip().lower() == 'n':
+                return False
+            else:
+                print("Invalid input, please choose from y or n.")
+
+
+
 def check_responses(players, discarder_idx, discarded_tile):
     """
     Check if any human player wants to declare Ron, Kan, Pon, or Chi.
@@ -124,8 +146,9 @@ def play_round():
     # check Tenhou
     for p in players:
         if is_win_hand(p.hand):
-            print(f"{p.name} wins by Tenhou!")
-            return
+            if ask_win("tenhou", p):
+                print(f"{p.name} wins by Tenhou!")
+                return
 
     turn = 0
     while len(live_wall) > 0:
@@ -143,8 +166,9 @@ def play_round():
 
             # check Tsumo
             if is_win_hand(current_player.hand):
-                print(f"{current_player.name} wins by Tsumo!")
-                return
+                if ask_win("tsumo", current_player):
+                    print(f"{current_player.name} wins by Tsumo!")
+                    return
 
         print(f"Melds: {current_player.melds}")
         print(f"Hand: {colored(current_player.hand)}")
@@ -168,8 +192,9 @@ def play_round():
             print(f"{kan_player.name} drew {drawn_tile2}")
             # Tsumo check
             if is_win_hand(kan_player.hand):
-                print(f"{kan_player.name} wins by Tsumo!")
-                return
+                if ask_win("tsumo", kan_player):
+                    print(f"{kan_player.name} wins by Tsumo!")
+                    return
             # discard the tile after claiming the meld
             print(f"Hand after meld: {colored(kan_player.hand)}")
             discard_index = kan_player.decide_discard()
