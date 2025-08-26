@@ -1,5 +1,4 @@
 from collections import Counter
-
 from wall import sort_hand
 from tiles import Tile
 
@@ -23,12 +22,45 @@ def is_win_hand(hand:list):
     hand = [normalize_red(tile) for tile in hand]
     hand = sort_hand(hand)
 
-    # traverse possible (pair)eye
+    # check Kokushi Musou
+    if is_kokushi(hand):
+        return True, "kokushi"
+
+    # check chiitoitsu
+    if is_chiitoitsu(hand):
+        return True, "chiitoitsu"
+
+    # check standard
     for i in range(len(hand) - 1):
         if hand[i] == hand[i + 1]:
             remaining = hand[:i] + hand[i + 2:]
             if can_form_melds(remaining):
-                return True
+                return True, "standard"
+    return False
+def is_kokushi(hand:list[Tile]):
+    terminals_and_honors = [
+        Tile('m', 1), Tile('m', 9),
+        Tile('p', 1), Tile('p', 9),
+        Tile('s', 1), Tile('s', 9),
+        Tile('z', 'E'), Tile('z', 'S'),
+        Tile('z', 'W'), Tile('z', 'N'),
+        Tile('z', 'P'), Tile('z', 'F'),
+        Tile('z', 'C')
+    ]
+    unique_tiles = set(terminals_and_honors)
+    hand_set = set(hand)
+    if not unique_tiles.issubset(hand_set):
+        return False
+    counter = Counter(hand)
+    num_pairs = sum(v == 2 for k, v in counter.items() if k in unique_tiles) # one pair in terminals and honors
+    if num_pairs == 1:
+        return True
+    return False
+
+def is_chiitoitsu(hand:list[Tile]):
+    counter = Counter(hand)
+    if len(counter) == 7 and all(v == 2 for v in counter.values()):
+        return True
     return False
 
 def can_form_melds(tiles:list):
