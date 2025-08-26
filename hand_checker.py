@@ -37,6 +37,7 @@ def is_win_hand(hand:list):
             if can_form_melds(remaining):
                 return True, "standard"
     return False
+
 def is_kokushi(hand:list[Tile]):
     terminals_and_honors = [
         Tile('m', 1), Tile('m', 9),
