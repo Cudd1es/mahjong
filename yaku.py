@@ -1,10 +1,8 @@
-import melds
 from player import Player, sort_hand
 from tiles import Tile
 from hand_checker import normalize_red, is_chiitoitsu, is_kokushi
-from collections import Counter
 
-def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo=False, is_riichi=False):
+def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False, is_riichi:bool=False)->list[tuple[str, int]]:
     """
     args:
         hand: list of 14 Tile objects (normalized)
@@ -26,7 +24,7 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo=False, is_rii
     # dora
     if dora > 0:
         result.append(('dora', dora))
-    # menzen tsumo
+    # menzenchin tsumo
     if is_menzen(player) and is_tsumo:
         result.append(('menzen', 1))
     # riichi

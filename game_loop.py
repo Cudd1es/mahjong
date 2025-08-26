@@ -3,6 +3,7 @@ from player import *
 import random
 from hand_checker import is_win_hand
 from melds import can_chi, can_pon, can_kan
+from yaku import check_yaku
 
 def colored(tiles):
     return " ".join([t.to_colored_str() for t in tiles])
@@ -168,6 +169,10 @@ def play_round():
             if is_win_hand(current_player.hand):
                 if ask_win("tsumo", current_player):
                     print(f"{current_player.name} wins by Tsumo!")
+                    # test
+                    yaku, han = check_yaku(current_player.hand, drawn_tile, current_player, is_tsumo=True, is_riichi=False)
+                    print(f"{yaku}")
+                    # !test
                     return
 
         print(f"Melds: {current_player.melds}")
@@ -181,6 +186,10 @@ def play_round():
         response, responder_idx, response_details = check_responses(players, current_player_idx, discarded)
         if response == 'ron':
             print(f"{players[responder_idx].name} wins by Ron!")
+            # test
+            yaku = check_yaku(players[responder_idx].hand, discarded, players[responder_idx], False, False)
+            print(f"{yaku}")
+            # !test
             return
         elif response == 'kan':
             kan_counter += 1
@@ -188,7 +197,7 @@ def play_round():
                 print("四槓散了（スーカンサンラ）")
                 return
             kan_player = players[responder_idx]
-            drawn_tile2 = kan_player.draw(dead_wall.pop())
+            drawn_tile2 = kan_player.draw(dead_wall)
             print(f"{kan_player.name} drew {drawn_tile2}")
             # Tsumo check
             if is_win_hand(kan_player.hand):
