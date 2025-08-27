@@ -71,7 +71,7 @@ def try_split_standard_hand(hand:list[Tile]):
     hand = sort_hand(hand)
     for i in range(len(hand) - 1):
         if hand[i] == hand[i + 1]:
-            head = [hand[i] + hand[i + 1]]
+            head = [hand[i], hand[i + 1]]
             remaining = hand[:i] + hand[i + 2:]
             flag, pungs, chows = split_melds(remaining)
             if flag:

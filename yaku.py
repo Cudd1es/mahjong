@@ -1,6 +1,6 @@
 from player import Player, sort_hand
 from tiles import Tile
-from hand_checker import normalize_red, is_chiitoitsu, is_kokushi
+from hand_checker import normalize_red, is_chiitoitsu, is_kokushi, try_split_standard_hand, split_melds
 
 def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False, is_riichi:bool=False)->list[tuple[str, int]]:
     """
@@ -20,6 +20,20 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False, i
 
     tmp_hand = [normalize_red(tile) for tile in tmp_hand]
     result = []
+
+    tmp_meld = []
+    if player.melds:
+        for m in player.melds:
+            tmp_meld += m
+    tmp_meld = [normalize_red(tile) for tile in tmp_meld]
+
+    _, head, pungs, chows = try_split_standard_hand(tmp_hand)
+    tmp_lable, m_pungs, m_chows = split_melds(tmp_meld)
+
+    all_pungs = pungs + m_pungs
+    all_chows = chows + m_chows
+
+    print(f"head: {head}, pungs: {all_pungs}, chows: {all_chows}")
 
     # dora
     if dora > 0:

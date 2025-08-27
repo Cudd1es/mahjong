@@ -109,7 +109,10 @@ def check_responses(players, discarder_idx, discarded_tile):
                     chosen = chi_options[int(sel)-1]
                     print(f"{p.name} claims Chi {discarded_tile} with {chosen}!")
                     for chi_tile in chosen:
-                        p.hand.remove(chi_tile)
+                        for remove_idx, t in enumerate(p.hand):
+                            if t == chi_tile:
+                                p.hand.pop(remove_idx)
+                                break
                     p.melds.append(sort_hand(list(chosen) + [discarded_tile]))
                     return 'chi', idx, chosen + [discarded_tile]
                 elif sel == 'n':
@@ -166,7 +169,7 @@ def play_round():
             print(f"{current_player.name} ({current_player.wind}) drew {drawn_tile}")
 
             # check Tsumo
-            if is_win_hand(current_player.hand):
+            if is_win_hand(current_player.hand + [drawn_tile]):
                 if ask_win("tsumo", current_player):
                     print(f"{current_player.name} wins by Tsumo!")
                     # test
@@ -200,7 +203,7 @@ def play_round():
             drawn_tile2 = kan_player.draw(dead_wall)
             print(f"{kan_player.name} drew {drawn_tile2}")
             # Tsumo check
-            if is_win_hand(kan_player.hand):
+            if is_win_hand(kan_player.hand + [drawn_tile2]):
                 if ask_win("tsumo", kan_player):
                     print(f"{kan_player.name} wins by Tsumo!")
                     return
