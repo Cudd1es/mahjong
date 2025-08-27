@@ -57,7 +57,7 @@ class HumanPlayer(Player):
                 print("[x] please enter a valid tile index")
                 continue
             idx = int(user_input)
-            if idx < 0 or idx > len(self.hand):
+            if idx < 0 or idx >= len(self.hand):
                 print(f"[x] Invalid index, please choose between 0 and {len(self.hand)-1}.")
             else:
                 return idx

@@ -62,10 +62,17 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False, i
     if flag:
         result.append(('chinitsu', 6+factor))
     # toitoi
+    if is_toitoi(all_pungs, all_chows):
+        result.append(('toitoi', 2))
+
     # sanshouku doujun
     # sanshouku doukou
     # ittsu 一気通貫
+
     # yakuhai
+    flag, yaku_result = yakuhai(all_pungs, player)
+    if flag:
+        result += yaku_result
 
     # ippatsu
     # liprikou
@@ -134,6 +141,25 @@ def is_chinitsu(hand, player):
     if len(suits) == 1 and 'z' not in suits:
         return True, factor
     return False, 0
+
+def is_toitoi(pungs, chows):
+    if not chows and len(pungs) == 4:
+        return True
+    return False
+
+def yakuhai(pungs, player):
+    result = []
+    for p in pungs:
+        if p[0].suit == 'z':
+            if p[0].value in ["P", "F", "C"]:
+                result.append((p[0].value, 1))
+            if p[0].value == player.wind:
+                result.append(("seat wind", 1))
+            if p[0].value == "E":
+                result.append(("round wind", 1))
+    if result:
+        return True, result
+    return False, []
 
 def is_pinfu(hand:list[Tile], tile, player):
     tmp_hand = hand[:] + [tile]
