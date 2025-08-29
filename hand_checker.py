@@ -38,7 +38,7 @@ def is_win_hand(hand:list):
     return False
 
 def is_kokushi(hand:list[Tile]):
-    terminals_and_honors = [
+    yaochu = [
         Tile('m', 1), Tile('m', 9),
         Tile('p', 1), Tile('p', 9),
         Tile('s', 1), Tile('s', 9),
@@ -47,7 +47,7 @@ def is_kokushi(hand:list[Tile]):
         Tile('z', 'P'), Tile('z', 'F'),
         Tile('z', 'C')
     ]
-    unique_tiles = set(terminals_and_honors)
+    unique_tiles = set(yaochu)
     hand_set = set(hand)
     if not unique_tiles.issubset(hand_set):
         return False

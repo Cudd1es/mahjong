@@ -10,6 +10,7 @@ class Player:
         self.discards = []
         self.melds = []
         self.score = 25000
+        self.is_riichi = False
         self.is_human = False
 
     def draw(self, wall):

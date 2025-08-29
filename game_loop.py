@@ -130,6 +130,7 @@ def play_round():
     # set human player as P1 and rest player are AI
     players = [
         HumanPlayer("P1", "E"),
+        #AIPlayer("P1", "E"),
         AIPlayer("P2", "S"),
         AIPlayer("P3", "W"),
         AIPlayer("P4", "N")
