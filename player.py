@@ -33,7 +33,8 @@ class Player:
         self.hand = sort_hand(self.hand)
 
     def sort_melds(self):
-        self.melds = sort_hand(self.melds)
+        for meld in self.melds:
+            meld = sort_hand(meld)
 
 class AIPlayer(Player):
     def __init__(self, name:str, wind):
