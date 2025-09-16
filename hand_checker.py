@@ -162,3 +162,54 @@ def can_form_melds(tiles:list):
     return False
 
 
+def all_unique_tiles():
+    """
+    Return all unique 34 types of tiles
+    """
+    tiles = []
+    for suit in 'mps':
+        for v in range(1, 10):
+            tiles.append(Tile(suit, v))
+    for v in ['E', 'S', 'W', 'N', 'P', 'F', 'C']:
+        tiles.append(Tile('z', v))
+    return tiles
+
+def is_waiting_hand(hand:list[Tile]):
+    """
+    check if current hand (13 tiles) + one tile = winning hand
+    return True or False with a list of tiles that can form winning hand
+    """
+    waiting_tiles = []
+    flag = False
+    # traverse all unique tiles to find all possible waiting tiles
+    tiles_to_check = all_unique_tiles()
+    for tile in tiles_to_check:
+        tmp_hand = hand[:]
+        tmp_hand = [normalize_red(t) for t in tmp_hand]
+        counter = Counter(tmp_hand)
+        # if current hand have 4 tiles already, skip
+        if counter[tile] and counter[tile] >= 4:
+            continue
+        tmp_hand.append(tile)
+        if is_win_hand(tmp_hand):
+            waiting_tiles.append(tile)
+            flag = True
+    return flag, waiting_tiles
+
+def discard_to_wait(hand:list[Tile]):
+    """
+    in the phase after drawing a tile, check if discarding any tile can make the hand waiting hand
+    traverse the hand and find all possible tiles to be discarded
+    return True or False with a list of tiles that can be discarded and waiting tiles, in the form of
+    [(discard_tile, waiting_tiles)]
+    """
+    if len(hand) != 14:
+        raise ValueError("Hand must contain 14 tiles (after drawing)")
+    results = set()
+    for i in range(len(hand)):
+        tmp_hand = hand[:]
+        tmp_hand.pop(i)
+        waiting, waiting_tiles = is_waiting_hand(tmp_hand)
+        if waiting:
+            results.add((hand[i], tuple(waiting_tiles)))
+    return results

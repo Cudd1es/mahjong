@@ -1,7 +1,7 @@
 from wall import *
 from player import *
 import random
-from hand_checker import is_win_hand
+from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait
 from melds import can_chi, can_pon, can_kan
 from yaku import check_yaku
 
@@ -28,7 +28,35 @@ def ask_win(win_type, player):
             else:
                 print("Invalid input, please choose from y or n.")
 
+def player_hand_check(player):
+    if not player.is_human:
+        return
+    full_hand = player.hand[:]
+    for m in player.melds:
+        full_hand += m
+    # check Tsumo
+    if is_win_hand(full_hand):
+        if ask_win("tsumo", player):
+            print(f"{player.name} wins by Tsumo!")
+            # test
+            yaku = check_yaku(player.hand[:-1], player.hand[-1], player, is_tsumo=True, is_riichi=False)
+            yaku_list = []
+            han = 0
+            for y, h in yaku:
+                yaku_list.append(y)
+                han += h
+            print(f"{yaku}")
+            print(f"{han}")
+            # !test
+            return
+    # check waiting hand
+    discard_tiles = discard_to_wait(full_hand)
+    if discard_tiles:
+        print("you can discard the following to Tenpai:")
+        for tile, waiting in discard_tiles:
+            print(f"{tile}: waiting: {waiting}")
 
+    return
 
 def check_responses(players, discarder_idx, discarded_tile):
     """
@@ -109,10 +137,7 @@ def check_responses(players, discarder_idx, discarded_tile):
                     chosen = chi_options[int(sel)-1]
                     print(f"{p.name} claims Chi {discarded_tile} with {chosen}!")
                     for chi_tile in chosen:
-                        for remove_idx, t in enumerate(p.hand):
-                            if t == chi_tile:
-                                p.hand.pop(remove_idx)
-                                break
+                        remove_tile_from_hand(p.hand, chi_tile)
                     p.melds.append(sort_hand(list(chosen) + [discarded_tile]))
                     return 'chi', idx, chosen + [discarded_tile]
                 elif sel == 'n':
@@ -121,6 +146,24 @@ def check_responses(players, discarder_idx, discarded_tile):
                 break
             print("invalid input, please try again")
     return None, discarder_idx, None
+
+def remove_tile_from_hand(hand, tile):
+    """
+    Remove one tile from hand, treat red five(0) and normal five(5) as equivalent
+    """
+    for idx, t in enumerate(hand):
+        if t.suit == tile.suit:
+            if t.value == tile.value:
+                hand.pop(idx)
+                return
+            # remove aka5 when looking for 5
+            if tile.value == 5 and t.value == 0:
+                hand.pop(idx)
+                return
+            # remove 5 when looking for aka5
+            if tile.value == 0 and t.value == 5:
+                hand.pop(idx)
+                return
 
 def play_round():
     wall = create_wall()
@@ -163,12 +206,15 @@ def play_round():
         current_player.sort_hand()
 
         if turn != 0:
+
+            # draw
             drawn_tile = current_player.draw(live_wall)
             if drawn_tile is None:
                 print("No more tiles to draw, game ends in draw")
                 break
             print(f"{current_player.name} ({current_player.wind}) drew {drawn_tile}")
 
+            """
             # check Tsumo
             if is_win_hand(current_player.hand + [drawn_tile]):
                 if ask_win("tsumo", current_player):
@@ -178,10 +224,12 @@ def play_round():
                     print(f"{yaku}")
                     # !test
                     return
+            """
 
         print(f"Melds: {current_player.melds}")
         print(f"Hand: {colored(current_player.hand)}")
 
+        player_hand_check(current_player)
         discard_index = current_player.decide_discard()
         discarded = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded}")
@@ -192,6 +240,12 @@ def play_round():
             print(f"{players[responder_idx].name} wins by Ron!")
             # test
             yaku = check_yaku(players[responder_idx].hand, discarded, players[responder_idx], False, False)
+            yaku_list = []
+            han = 0
+            for y, h in yaku:
+                yaku_list.append(y)
+                han += h
+            print(f"{han}")
             print(f"{yaku}")
             # !test
             return

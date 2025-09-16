@@ -36,7 +36,7 @@ class ShantenCalculator:
             shanten_type = 'standard'
         elif min_shanten == s_chiitoitsu:
             shanten_type = 'chiitoitsu'
-        elif min_shanten == s_kokushi:
+        else:
             shanten_type = 'kokushi'
         return min_shanten, shanten_type, {'standard': s_std, 'chiitoitsu': s_chiitoitsu, 'kokushi': s_kokushi}
 
@@ -74,7 +74,7 @@ class ShantenCalculator:
 
     @staticmethod
     def shanten_standard(hand):
-        min_shanten = [8]
+        min_shanten = [8] # use list not int to pass the value through the function
 
         def dfs(tiles, meld=0, pair=0):
             if meld > 4:
@@ -89,28 +89,28 @@ class ShantenCalculator:
             # remove pungs
             for t in set(tiles):
                 if counter[t] >= 3:
-                    tlist = tiles[:]
+                    new_tiles = tiles[:]
                     for _ in range(3):
-                        tlist.remove(t)
-                    dfs(tlist, meld+1, pair)
+                        new_tiles.remove(t)
+                    dfs(new_tiles, meld+1, pair)
             # remove chows
             for t in set(tiles):
                 if t.suit in 'mps' and 1 <= t.value <= 7:
                     second_tile = Tile(t.suit, t.value + 1)
                     third_tile = Tile(t.suit, t.value + 2)
                     if second_tile in tiles and third_tile in tiles:
-                        tlist = tiles[:]
-                        tlist.remove(t)
-                        tlist.remove(second_tile)
-                        tlist.remove(third_tile)
-                        dfs(tlist, meld+1, pair)
+                        new_tiles = tiles[:]
+                        new_tiles.remove(t)
+                        new_tiles.remove(second_tile)
+                        new_tiles.remove(third_tile)
+                        dfs(new_tiles, meld+1, pair)
             # remove pair
             for t in set(tiles):
                 if counter[t] >= 2 and pair < 1:
-                    tlist = tiles[:]
-                    tlist.remove(t)
-                    tlist.remove(t)
-                    dfs(tlist, meld, pair+1)
+                    new_tiles = tiles[:]
+                    new_tiles.remove(t)
+                    new_tiles.remove(t)
+                    dfs(new_tiles, meld, pair+1)
             # no longer removable
             shanten = 8 - meld * 2 - pair
             if shanten < min_shanten[0]:
@@ -138,11 +138,11 @@ class ShantenCalculator:
 if __name__ == '__main__':
     # Example: standard tenpai hand
     hand = [
-        Tile('m', 1), Tile('m', 2), Tile('m', 3),
-        Tile('p', 1), Tile('p', 2), Tile('p', 3),
-        Tile('s', 1), Tile('s', 2), Tile('s', 3),
+        Tile('p', 3), Tile('p', 2),
+        Tile('m', 5), Tile('m', 6), Tile('m', 7),
+        Tile('m', 5), Tile('m', 6), Tile('m', 4),
         Tile('m', 7), Tile('m', 8), Tile('m', 9),
-        Tile('s', 7)
+        Tile('s', 7), Tile('s', 7),
     ]
     calc = ShantenCalculator(hand)
     min_shanten, typ, detail = calc.calculate()
