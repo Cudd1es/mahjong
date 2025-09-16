@@ -28,9 +28,24 @@ def ask_win(win_type, player):
             else:
                 print("Invalid input, please choose from y or n.")
 
-def player_hand_check(player):
+def ask_riichi(player):
     if not player.is_human:
-        return
+        player.is_riichi = True
+        return True
+    msg = f"{player.name}, You can riichi, do you want to riichi? ([Y]/n): "
+    while True:
+        choice = input(msg).strip().lower()
+        if choice.strip().lower() in ["y", ""]:
+            return True
+        elif choice.strip().lower() == 'n':
+            return False
+        else:
+            print("Invalid input, please choose from y or n.")
+
+def player_hand_check(player):
+    return_val = "None"
+    if not player.is_human:
+        return return_val
     full_hand = player.hand[:]
     for m in player.melds:
         full_hand += m
@@ -39,7 +54,7 @@ def player_hand_check(player):
         if ask_win("tsumo", player):
             print(f"{player.name} wins by Tsumo!")
             # test
-            yaku = check_yaku(player.hand[:-1], player.hand[-1], player, is_tsumo=True, is_riichi=False)
+            yaku = check_yaku(player.hand[:-1], player.hand[-1], player, is_tsumo=True)
             yaku_list = []
             han = 0
             for y, h in yaku:
@@ -48,15 +63,21 @@ def player_hand_check(player):
             print(f"{yaku}")
             print(f"{han}")
             # !test
-            return
+            return_val = "tsumo"
+            return return_val
     # check waiting hand
     discard_tiles = discard_to_wait(full_hand)
-    if discard_tiles:
+    if discard_tiles and len(discard_tiles) > 0:
         print("you can discard the following to Tenpai:")
         for tile, waiting in discard_tiles:
             print(f"{tile}: waiting: {waiting}")
 
-    return
+    # check riichi
+    if not player.is_riichi and discard_tiles and not player.melds:
+        is_riichi = ask_riichi(player)
+        if is_riichi:
+            return_val = "riichi"
+    return return_val
 
 def check_responses(players, discarder_idx, discarded_tile):
     """
@@ -83,13 +104,13 @@ def check_responses(players, discarder_idx, discarded_tile):
         if can_kan(p.hand, discarded_tile):
             options.append('kan')
         # Pon
-        if can_pon(p.hand, discarded_tile):
+        if can_pon(p.hand, discarded_tile) and not p.is_riichi:
             options.append('pon')
         # Chi
         chi_options = []
         if i == 1: # only next player can chi
             chi_options = can_chi(p.hand, discarded_tile)
-            if chi_options:
+            if chi_options and not p.is_riichi:
                 options.append('chi')
         if not options:
             continue
@@ -229,7 +250,9 @@ def play_round():
         print(f"Melds: {current_player.melds}")
         print(f"Hand: {colored(current_player.hand)}")
 
-        player_hand_check(current_player)
+        return_val = player_hand_check(current_player)
+        if return_val == "tsumo":
+            return
         discard_index = current_player.decide_discard()
         discarded = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded}")
@@ -239,7 +262,7 @@ def play_round():
         if response == 'ron':
             print(f"{players[responder_idx].name} wins by Ron!")
             # test
-            yaku = check_yaku(players[responder_idx].hand, discarded, players[responder_idx], False, False)
+            yaku = check_yaku(players[responder_idx].hand, discarded, players[responder_idx], False)
             yaku_list = []
             han = 0
             for y, h in yaku:
@@ -293,6 +316,10 @@ def play_round():
         if len(live_wall) == 0:
             print("\nNo more tiles in live wall. The game ends in draw")
             break
+
+        if return_val == "riichi":
+            print(f"{current_player.name}Riichi!")
+            current_player.is_riichi = True
         turn += 1
 
 

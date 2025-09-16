@@ -51,6 +51,9 @@ class HumanPlayer(Player):
     def decide_discard(self):
         """discard on human input"""
         while True:
+            if self.is_riichi:
+                idx = len(self.hand) - 1
+                return idx
             formatted_hand = [f"({i}){tile.to_colored_str() }" for i, tile in enumerate(self.hand)]
             print(f"your hand: {' '.join(formatted_hand)} ")
             user_input = input("choose a tile index to discard: ")

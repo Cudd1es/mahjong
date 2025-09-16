@@ -2,7 +2,7 @@ from player import Player, sort_hand
 from tiles import Tile
 from hand_checker import normalize_red, is_chiitoitsu, is_kokushi, try_split_standard_hand, split_melds
 
-def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False, is_riichi:bool=False)->list[tuple[str, int]]:
+def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->list[tuple[str, int]]:
     """
     args:
         hand: list of 14 Tile objects (normalized)
@@ -42,7 +42,7 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False, i
     if is_menzen(player) and is_tsumo:
         result.append(('menzen', 1))
     # riichi
-    if is_menzen(player) and is_riichi:
+    if is_menzen(player) and player.is_riichi:
         result.append(('riichi', 1))
     # pinfu
     if is_pinfu(hand, tile, player):
