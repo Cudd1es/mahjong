@@ -196,20 +196,23 @@ def is_waiting_hand(hand:list[Tile]):
             flag = True
     return flag, waiting_tiles
 
-def discard_to_wait(hand:list[Tile]):
+def discard_to_wait(hand:list[Tile], melds):
     """
     in the phase after drawing a tile, check if discarding any tile can make the hand waiting hand
     traverse the hand and find all possible tiles to be discarded
     return True or False with a list of tiles that can be discarded and waiting tiles, in the form of
     [(discard_tile, waiting_tiles)]
     """
-    if len(hand) != 14:
+    full_melds = [t for meld in melds for t in meld]
+    full_hand = hand[:] + full_melds
+    if len(full_hand) != 14:
         raise ValueError("Hand must contain 14 tiles (after drawing)")
     results = set()
     for i in range(len(hand)):
         tmp_hand = hand[:]
-        tmp_hand.pop(i)
-        waiting, waiting_tiles = is_waiting_hand(tmp_hand)
+        discard_tile = tmp_hand.pop(i)
+        tmp_full_hand = tmp_hand[:] + full_melds
+        waiting, waiting_tiles = is_waiting_hand(tmp_full_hand)
         if waiting:
-            results.add((hand[i], tuple(waiting_tiles)))
+            results.add((discard_tile, tuple(waiting_tiles)))
     return results

@@ -46,9 +46,7 @@ def player_hand_check(player):
     return_val = "None"
     if not player.is_human:
         return return_val
-    full_hand = player.hand[:]
-    for m in player.melds:
-        full_hand += m
+    full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
     # check Tsumo
     if is_win_hand(full_hand):
         if ask_win("tsumo", player):
@@ -66,7 +64,7 @@ def player_hand_check(player):
             return_val = "tsumo"
             return return_val
     # check waiting hand
-    discard_tiles = discard_to_wait(full_hand)
+    discard_tiles = discard_to_wait(player.hand[:], player.melds)
     if discard_tiles and len(discard_tiles) > 0:
         print("you can discard the following to Tenpai:")
         for tile, waiting in discard_tiles:
