@@ -1,6 +1,7 @@
 from player import Player, sort_hand
 from tiles import Tile
 from hand_checker import normalize_red, is_chiitoitsu, is_kokushi, try_split_standard_hand, split_melds
+from collections import Counter
 
 def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->list[tuple[str, int]]:
     """
@@ -74,9 +75,14 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->
     if flag:
         result += yaku_result
 
+    # iipeikou
+    if is_iipeikou(chows, player):
+        result.append(('iipeikou', 2))
+    # ryanpeikou
+    if is_ryanpeikou(chows, player):
+        result.append(('ryanpeikou', 3))
     # ippatsu
-    # liprikou
-    # ryapeikou
+
     # haitei
     # houtei
     # rinshan
@@ -171,5 +177,17 @@ def is_pinfu(hand:list[Tile], tile, player):
     # WIP
     return False
 
+def is_iipeikou(chows, player):
+    if player.melds:
+        return False
+    elif is_ryanpeikou(chows, player):
+        return False
+    chows_counter = Counter(tuple(sorted(meld, key=lambda t: (t.suit, t.value))) for meld in chows)
+    return sum(1 for c in chows_counter.values() if c == 2) == 1
 
 
+def is_ryanpeikou(chows, player):
+    if player.melds:
+        return False
+    chows_counter = Counter(tuple(sorted(meld, key=lambda t: (t.suit, t.value))) for meld in chows)
+    return sum(1 for c in chows_counter.values() if c == 2) == 2
