@@ -74,6 +74,7 @@ def player_hand_check(player):
     if not player.is_riichi and discard_tiles and not player.melds:
         is_riichi = ask_riichi(player)
         if is_riichi:
+            player.riichi_declared = True # declare riichi in this round
             return_val = "riichi"
     return return_val
 

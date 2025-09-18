@@ -124,44 +124,6 @@ def split_melds(tiles, pung_list=None, chow_lsit=None):
                     return True, pungs, chows
     return False, [], []
 
-
-# no longer used
-def can_form_melds(tiles:list):
-    """
-    check if the tiles is consisted of melds
-    """
-    if not tiles:
-        return True # no remaining tile in the list means the original tiles is consisted of melds
-    if len(tiles) %3 != 0:
-        return False
-
-    first_tile = tiles[0]
-
-    # check pung
-    if tiles.count(first_tile) >= 3:
-        new_tiles = tiles[:]
-        for _ in range(3):
-            new_tiles.remove(first_tile)
-        return can_form_melds(new_tiles)
-
-    # check chow
-    if first_tile.suit in ("m", "p", "s"):
-        val = first_tile.value
-        if val <= 7:
-            # create Tile objects for the next two in sequence
-            second_tile = Tile(first_tile.suit, val+1)
-            third_tile = Tile(first_tile.suit, val+2)
-
-            if second_tile in tiles and third_tile in tiles:
-                new_tiles = tiles[:]
-                new_tiles.remove(first_tile)
-                new_tiles.remove(second_tile)
-                new_tiles.remove(third_tile)
-                return can_form_melds(new_tiles)
-
-    return False
-
-
 def all_unique_tiles():
     """
     Return all unique 34 types of tiles

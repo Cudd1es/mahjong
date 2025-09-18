@@ -10,8 +10,10 @@ class Player:
         self.discards = []
         self.melds = []
         self.score = 25000
-        self.is_riichi = False
         self.is_human = False
+        self.is_riichi = False
+        self.riichi_declared_on_discard_idx = None  # The index in discards where riichi was declared
+        self.riichi_declared = False  # Whether riichi was declared in this round
 
     def draw(self, wall):
         if wall:
@@ -33,8 +35,8 @@ class Player:
         self.hand = sort_hand(self.hand)
 
     def sort_melds(self):
-        for meld in self.melds:
-            meld = sort_hand(meld)
+        for i, meld in enumerate(self.melds):
+            self.melds[i] = sort_hand(meld)
 
 class AIPlayer(Player):
     def __init__(self, name:str, wind):
