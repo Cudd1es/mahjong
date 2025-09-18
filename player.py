@@ -25,10 +25,15 @@ class Player:
     def discard(self, index):
         tile = self.hand.pop(index)
         self.discards.append(tile)
+        if self.riichi_declared:
+            self.riichi_declared_on_discard_idx = len(self.discards) - 1  # record the tile discarded when declaring riichi
+            self.riichi_declared = False
         return tile
 
     def decide_discard(self):
         """strategy to discard, by default it randomly discards."""
+        if self.is_riichi:
+            return len(self.hand) - 1 # discard tiles drew after riichi
         return random.randint(0, len(self.hand) - 1)
 
     def sort_hand(self):
@@ -52,10 +57,9 @@ class HumanPlayer(Player):
         self.is_human = True
     def decide_discard(self):
         """discard on human input"""
+        if self.is_riichi:
+            return super().decide_discard()
         while True:
-            if self.is_riichi:
-                idx = len(self.hand) - 1
-                return idx
             formatted_hand = [f"({i}){tile.to_colored_str() }" for i, tile in enumerate(self.hand)]
             print(f"your hand: {' '.join(formatted_hand)} ")
             user_input = input("choose a tile index to discard: ")
