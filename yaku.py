@@ -16,6 +16,7 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->
     """
     tmp_hand = hand[:] + [tile]
     dora = 0
+    # count aka dora first and then convert all aka dora to normal tiles
     aka_dora = sum(1 for t in tmp_hand if t.value == 0)
     dora += aka_dora
 
@@ -65,9 +66,12 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->
     # toitoi
     if is_toitoi(all_pungs, all_chows):
         result.append(('toitoi', 2))
-
     # sanshouku doujun
+    if is_sanshouku_doujun(all_chows, player):
+        result.append(('sanshouku_doujun', 2+factor))
     # sanshouku doukou
+    if is_sanshouku_doukou(all_pungs, player):
+        result.append(('sanshouku_doukou', 2+factor))
     # ittsu 一気通貫
 
     # yakuhai
@@ -191,3 +195,27 @@ def is_ryanpeikou(chows, player):
         return False
     chows_counter = Counter(tuple(sorted(meld, key=lambda t: (t.suit, t.value))) for meld in chows)
     return sum(1 for c in chows_counter.values() if c == 2) == 2
+
+def is_sanshouku_doujun(all_chows, player):
+    factor = -1 if player.melds else 0
+    chows = set([tuple(sorted(meld, key=lambda t: (t.suit, t.value))) for meld in all_chows])
+    for chow in chows:
+        s, v = chow[0].suit, chow[0].value
+        tmp1 = tuple([Tile('m', v), Tile('m', v + 1), Tile('m', v + 2)])
+        tmp2 = tuple([Tile('p', v), Tile('p', v + 1), Tile('p', v + 2)])
+        tmp3 = tuple([Tile('s', v), Tile('s', v + 1), Tile('s', v + 2)])
+        if tmp1 in chows and tmp2 in chows and tmp3 in chows:
+            return True, factor
+    return False, 0
+
+def is_sanshouku_doukou(all_pungs, player):
+    factor = -1 if player.melds else 0
+    pungs = set([tuple(sorted(meld, key=lambda t: (t.suit, t.value))) for meld in all_pungs])
+    for pung in pungs:
+        s, v = pung[0].suit, pung[0].value
+        tmp1 = tuple([Tile('m', v), Tile('m', v), Tile('m', v)])
+        tmp2 = tuple([Tile('p', v), Tile('p', v), Tile('p', v)])
+        tmp3 = tuple([Tile('s', v), Tile('s', v), Tile('s', v)])
+        if tmp1 in pungs and tmp2 in pungs and tmp3 in pungs:
+            return True, factor
+    return False, 0

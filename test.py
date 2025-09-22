@@ -1,44 +1,57 @@
-from hand_checker import is_win_hand
 from tiles import Tile
+from player import Player
+from yaku import *
+def test_sanshouku_doujun_menzen():
+    # 门清三色同顺，234m,234p,234s
+    all_chows = [
+        [Tile('m',2), Tile('m',3), Tile('m',4)],
+        [Tile('p',2), Tile('p',3), Tile('p',4)],
+        [Tile('s',2), Tile('s',3), Tile('s',4)]
+    ]
+    player = Player("Test", "E")
+    player.melds = []
+    result, factor = is_sanshouku_doujun(all_chows, player)
+    assert result and factor == 0
 
+def test_sanshouku_doujun_open():
+    all_chows = [
+        [Tile('m',2), Tile('m',3), Tile('m',4)],
+        [Tile('p',2), Tile('p',3), Tile('p',4)],
+        [Tile('s',2), Tile('s',3), Tile('s',4)]
+    ]
+    player = Player("Test", "E")
+    player.melds = [[Tile('p',2), Tile('p',3), Tile('p',4)]]
+    result, factor = is_sanshouku_doujun(all_chows, player)
+    assert result and factor == -1
 
-def parse_hand(hand_str_list: list[str]) -> list[Tile]:
-    """
-    Convert a list of string tiles into a list of Tile objects.
+def test_not_sanshouku_doujun():
+    all_chows = [
+        [Tile('m',2), Tile('m',3), Tile('m',4)],
+        [Tile('p',2), Tile('p',3), Tile('p',4)],
+        [Tile('s',3), Tile('s',4), Tile('s',5)]
+    ]
+    player = Player("Test", "E")
+    result, factor = is_sanshouku_doujun(all_chows, player)
+    assert not result
 
-    Examples of input:
-        "1m", "0p", "5s", "E", "F", "C"
-    """
-    tile_list = []
-    for t in hand_str_list:
-        if t[-1] in ("m", "p", "s"):  # 数牌
-            value = int(t[:-1])
-            suit = t[-1]
-            tile_list.append(Tile(suit, value))
-        else:  # 字牌
-            tile_list.append(Tile("z", t))
-    return tile_list
+def test_sanshouku_doukou_menzen():
+    all_pungs = [
+        [Tile('m',7), Tile('m',7), Tile('m',7)],
+        [Tile('p',7), Tile('p',7), Tile('p',7)],
+        [Tile('s',7), Tile('s',7), Tile('s',7)]
+    ]
+    player = Player("Test", "E")
+    player.melds = []
+    result, factor = is_sanshouku_doukou(all_pungs, player)
+    assert result and factor == 0
 
+def test_not_sanshouku_doukou():
+    all_pungs = [
+        [Tile('m',7), Tile('m',7), Tile('m',7)],
+        [Tile('p',7), Tile('p',7), Tile('p',7)],
+        [Tile('s',8), Tile('s',8), Tile('s',8)]
+    ]
+    player = Player("Test", "E")
+    result, factor = is_sanshouku_doukou(all_pungs, player)
+    assert not result
 
-
-hand1 = ["1m","2m","3m","4p","5p","6p","7s","8s","9s","E","E","E","0m","5m"]
-# True : 1m2m3m | 4p5p6p | 7s8s9s | EEE | 5m5m(赤5当5m)
-
-hand2 = ["1m","2m","3m","0p","5p","6p","9s","8s","9s","E","E","E","5m","5m"]
-# True : 1m2m3m | 0p5p6p (即 4p5p6p) | 7s8s9s | EEE | 5m5m
-
-
-print(parse_hand(hand1))  # 会自动调用 __repr__，输出类似 [1m, 2m, 3m, ...]
-hand1 = parse_hand(hand1)
-hand2 = parse_hand(hand2)
-print(is_win_hand(hand2))
-
-
-tile = Tile("s", 5)
-print(f")({tile.to_colored_str()}")
-
-print(f"{hand1[5].to_colored_str()}")
-print(f"{hand2[5]}")
-print(f"{i}" for i, t in enumerate(hand2))
-for i, t in enumerate(hand1):
-    print(f"{i}) {t.to_colored_str()}")
