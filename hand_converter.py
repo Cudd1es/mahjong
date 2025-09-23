@@ -28,11 +28,11 @@ def hand_converter(hand_str):
             if tmp_suit == 'z':
                 result.append(Tile(tmp_suit, z_dict[hand_str[i]]))
             else:
-                result.append(Tile(tmp_suit, hand_str[i]))
+                result.append(Tile(tmp_suit, int(hand_str[i])))
     result = sort_hand(result)
     return result
 
 
-case = "123456m456p777s22z"
+case = "123406m406p777s22z"
 ret = hand_converter(case)
 print(ret)
