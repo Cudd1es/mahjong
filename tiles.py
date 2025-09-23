@@ -1,6 +1,6 @@
 class Tile:
     """
-    characters(m): 1m -9m
+    characters(m): 1m - 9m
     dots(p): 1p - 9p
     bamboo(s): 1s - 9s
     honors(z): East(E), South(S), West(W), North(N), White(P), Green(F), Red(C)
