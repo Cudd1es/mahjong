@@ -67,10 +67,12 @@ def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->
     if is_toitoi(all_pungs, all_chows):
         result.append(('toitoi', 2))
     # sanshouku doujun
-    if is_sanshouku_doujun(all_chows, player):
+    flag, factor = is_sanshouku_doujun(all_chows, player)
+    if flag:
         result.append(('sanshouku_doujun', 2+factor))
     # sanshouku doukou
-    if is_sanshouku_doukou(all_pungs, player):
+    flag, factor = is_sanshouku_doukou(all_pungs, player)
+    if flag:
         result.append(('sanshouku_doukou', 2+factor))
     # ittsu 一気通貫
 

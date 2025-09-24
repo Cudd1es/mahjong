@@ -32,7 +32,8 @@ def hand_converter(hand_str):
     result = sort_hand(result)
     return result
 
-
+'''
 case = "123406m406p777s22z"
 ret = hand_converter(case)
 print(ret)
+'''
