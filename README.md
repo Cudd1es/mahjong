@@ -18,11 +18,6 @@ This project aims to provide a playable console game, rich yaku detection, AI an
 
 ---
 
-## Requirements
-
-- Python 3.9+ 
-
----
 
 ## Project Structure
 
@@ -36,6 +31,11 @@ mahjong/
   ├── melds.py             # Chi, pon, kan detection and meld handling
   ├── yaku.py              # Yaku detection (all major Riichi yaku supported)
 ```
+
+---
+## Requirements
+
+- Python 3.9+ 
 
 ---
 
