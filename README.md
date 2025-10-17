@@ -35,7 +35,6 @@ mahjong/
   ├── hand_checker.py      # Hand evaluation: winning hand, tenpai, discard recommendations
   ├── melds.py             # Chi, pon, kan detection and meld handling
   ├── yaku.py              # Yaku detection (all major Riichi yaku supported)
-  ├── (tests/)             # (Optional) pytest-based unit tests for key components
 ```
 
 ---
