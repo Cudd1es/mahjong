@@ -1,6 +1,6 @@
 from collections import Counter
-from wall import sort_hand
-from tiles import Tile
+from src.models.wall import sort_hand
+from src.models.tiles import Tile
 
 def normalize_red(tile: Tile) -> Tile:
     """

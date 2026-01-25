@@ -1,5 +1,5 @@
-from tiles import Tile
-from hand_checker import normalize_red
+from src.models.tiles import Tile
+from src.core.hand_checker import normalize_red
 
 def can_chi(hand, tile):
     # normalize red 5 tiles
@@ -52,7 +52,12 @@ def can_kakan(hand, melds, drawn_tile):
         # A Pon has 3 tiles. We check one representative.
         if len(m) == 3 and normalize_red(m[0]) == drawn_tile:
             # Found a matching Pon
-            options.append(m)
+            # Check if it is a Pon (all tiles match)
+            # A Chi (e.g. 4,5,6) would also match m[0] == drawn_tile if drawn is 4.
+            # Must verify all tiles in m are equivalent to drawn_tile
+            is_pon = all(normalize_red(t) == drawn_tile for t in m)
+            if is_pon:
+                options.append(m)
     return options
 
 

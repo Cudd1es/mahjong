@@ -1,4 +1,4 @@
-from tiles import Tile
+from src.models.tiles import Tile
 import math
 
 class FuCalculator:

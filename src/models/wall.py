@@ -1,5 +1,5 @@
 import random
-from tiles import Tile
+from src.models.tiles import Tile
 
 def create_wall():
     """create the full wall including red 5 tiles (0m, 0p, 0s)"""
