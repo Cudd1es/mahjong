@@ -1,5 +1,5 @@
-from tiles import Tile
-from hand_checker import normalize_red
+from src.models.tiles import Tile
+from src.core.hand_checker import normalize_red
 
 def can_chi(hand, tile):
     # normalize red 5 tiles

@@ -1,4 +1,4 @@
-from wall import sort_hand
+from src.models.wall import sort_hand
 import random
 
 

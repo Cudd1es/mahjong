@@ -1,6 +1,7 @@
-from player import Player, sort_hand
-from tiles import Tile
-from hand_checker import normalize_red, is_chiitoitsu, is_kokushi, try_split_standard_hand, split_melds
+from src.models.player import Player
+from src.models.wall import sort_hand
+from src.models.tiles import Tile
+from src.core.hand_checker import normalize_red, is_chiitoitsu, is_kokushi, try_split_standard_hand, split_melds
 from collections import Counter
 
 def check_yaku(hand:list[Tile], tile:Tile, player:Player, is_tsumo:bool=False)->list[tuple[str, int]]:
