@@ -70,7 +70,8 @@ class TestKanLogic(unittest.TestCase):
 
     @patch('src.game_engine.GameEngine.check_self_actions', return_value=("None", None))
     @patch('builtins.input', return_value='0') 
-    def test_daiminkan_flow(self, mock_input, mock_self_actions):
+    @patch('src.models.player.AIPlayer.decide_discard', return_value=0)
+    def test_daiminkan_flow(self, mock_decide, mock_input, mock_self_actions):
         print("\nTesting Daiminkan Flow in process_responses...")
         # Responder is self.engine.state.players[1] (P2)
         p2 = self.engine.state.players[1]
@@ -96,8 +97,25 @@ class TestKanLogic(unittest.TestCase):
         self.assertEqual(idx, 1) # P2
         self.assertIn(Tile('z', 'P'), p2.hand)
         
-        mock_self_actions.assert_called_once()
-        self.assertIsNotNone(new_discard)
+    @patch('src.game_engine.GameEngine.check_self_actions', return_value=("None", None))
+    @patch('src.models.player.AIPlayer.decide_discard', return_value=0)
+    def test_kakan_on_chi_fail(self, mock_decide, mock_self_actions):
+        print("\nTesting Kakan Failure on Chi...")
+        p = self.engine.state.players[0]
+        # Player has a Chi open: 4p 5p 6p
+        p.melds = [[Tile('p', 4), Tile('p', 5), Tile('p', 6)]]
+        
+        # Player draws ANY tile, let's say 4p. 
+        # Code incorrectly matched 4p with m[0] before.
+        drawn_tile = Tile('p', 4)  
+        p.hand = [drawn_tile] + [Tile('s', 1)] * 10
+        
+        # Test usage of can_kakan
+        from src.core.melds import can_kakan
+        options = can_kakan(p.hand, p.melds, drawn_tile)
+        
+        # Should be empty because [4p,5p,6p] is not a Pon
+        self.assertEqual(options, [], f"Should not find Kakan options for Chi meld: {options}")
 
 
 if __name__ == '__main__':

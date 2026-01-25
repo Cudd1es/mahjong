@@ -255,15 +255,22 @@ class GameEngine:
                 elif choice == '2' and 'kan' in options:
                     print(f"{p.name} claims Kan with {discarded_tile}!")
                     # Execute Kan (Daiminkan)
-                    tiles = [discarded_tile]
+                    # Use normalize_red to ensure we match 5m with 0m(red) correctly for removal.
+                    from src.core.hand_checker import normalize_red
+                    
+                    found_tiles = []
+                    final_hand = []
                     removed = 0
-                    new_hand = []
+                    
                     for t in p.hand:
-                         if t == discarded_tile and removed < 3:
-                             tiles.append(t); removed += 1
-                         else: new_hand.append(t)
-                    p.hand = new_hand
-                    p.melds.append(tiles) # 4 tiles
+                         if removed < 3 and normalize_red(t) == normalize_red(discarded_tile):
+                             found_tiles.append(t)
+                             removed += 1
+                         else:
+                             final_hand.append(t)
+                             
+                    p.hand = final_hand
+                    p.melds.append([discarded_tile] + found_tiles) # 4 tiles
                     
                     # Draw Rinshan
                     rinshan = self.state.draw_dead(p)
@@ -287,14 +294,61 @@ class GameEngine:
                      print(f"{p.name} claims Pon!")
                      # Execute Pon
                      tiles = [discarded_tile]
-                     removed = 0
-                     new_hand = []
+                     # We need to find 2 matching tiles in hand.
+                     # Since we don't know exactly which tiles (red/normal) were matched by can_pon, 
+                     # we should iterate and remove 2 tiles that match the suit/value.
+                     # remove_tile_from_hand handles red 5 equivalence.
+                     
+                     matched_tiles = []
+                     # We need to identify WHICH tiles to remove first to add to meld, or just remove them.
+                     # Ideally we want to add the specific tiles we removed to the meld.
+                     # But remove_tile_from_hand doesn't return the removed tile.
+                     # So we search for them first.
+                     
+                     count = 0
+                     to_remove_indices = []
+                     
+                     # Simple approach: find 2 tiles that match
+                     from src.core.hand_checker import normalize_red
+                     target = normalize_red(discarded_tile)
+                     
+                     # We want to prioritize removing tiles that match EXACTLY if possible?
+                     # Standard logic: if I have 5m, 0m(red), and pon 5m.
+                     # I treat it as 5-5-5 pon.
+                     # If I have 5,5,0. 
+                     # Actually we just need to pick 2 tiles that satisfy "is equivalent".
+                     
+                     for i in range(2):
+                        remove_tile_from_hand(p.hand, discarded_tile)
+                        # We reconstruct the meld from "implied" tiles?
+                        # No, we should put the ACTUAL tiles into the meld.
+                        # Since we popped them, we lost them if we don't track.
+                        # Wait, remove_tile_from_hand modifies list in place but returns nothing.
+                        # We should implement a `pop_tile_from_hand` or similar?
+                        # Or just do:
+                     
+                     # RE-IMPLEMENTATION:
+                     # Find 2 equivalent tiles to remove and keep them for the meld.
+                     found_tiles = []
+                     new_hand_for_traversal = p.hand[:] 
+                     # We can't iterate and modify easily.
+                     
+                     removed_count = 0
+                     final_hand = []
+                     
+                     # Logic: Iterate hand. If matches discarded_tile (red-aware), add to found_tiles and skip adding to final_hand.
+                     # Stop after 2 found.
+                     
                      for t in p.hand:
-                        if t == discarded_tile and removed < 2:
-                            tiles.append(t); removed += 1
-                        else: new_hand.append(t)
-                     p.hand = new_hand
-                     p.melds.append(tiles)
+                         if removed_count < 2 and normalize_red(t) == normalize_red(discarded_tile):
+                             found_tiles.append(t)
+                             removed_count += 1
+                         else:
+                             final_hand.append(t)
+                             
+                     p.hand = final_hand
+                     # Meld is [discarded, found1, found2]
+                     p.melds.append([discarded_tile] + found_tiles)
                      
                      print(f"Hand after meld: {colored(p.hand)}")
                      d_idx = p.decide_discard()
