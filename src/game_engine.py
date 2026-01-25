@@ -2,6 +2,7 @@ from src.game_state import GameState
 from src.core.hand_checker import is_win_hand, discard_to_wait, normalize_red, sort_hand
 from src.core.melds import can_chi, can_pon, can_kan, can_ankan, can_kakan
 from src.core.game_utils import handle_win, ask_win, ask_riichi, remove_tile_from_hand, colored
+from src.core.yaku import check_yaku
 
 class GameEngine:
     def __init__(self):
@@ -135,13 +136,34 @@ class GameEngine:
             # Check Tsumo using new signature (hand, melds)
             # hand contains the drawn tile (standing hand)
             if is_win_hand(player.hand, player.melds):
-                return "tsumo", None
+                # Calculate Yaku
+                tsumo_tile = player.hand[-1]
+                hand_13 = player.hand[:-1]
+                yakus = check_yaku(hand_13, tsumo_tile, player, is_tsumo=True)
+                # Filter out Dora (not a valid Yaku for winning condition)
+                valid_yakus = [y for y, h in yakus if y != 'dora']
+                if valid_yakus:
+                    return "tsumo", None
+                else:
+                    return "None", None
             return "None", None
             
         while True:
             # Human Tsumo Check
             if is_win_hand(player.hand, player.melds):
-                if ask_win("tsumo", player):
+                tsumo_tile = player.hand[-1]
+                hand_13 = player.hand[:-1]
+                yakus = check_yaku(hand_13, tsumo_tile, player, is_tsumo=True)
+                
+                if yakus:
+                    # Format Yakus for display?
+                    yaku_str = ", ".join([f"{y}({h}han)" for y, h in yakus])
+                    print(f"Tsumo possible! Yaku: {yaku_str}")
+                    if ask_win(f"tsumo (Yaku: {yaku_str})", player):
+                        handle_win(player, player.hand[-1], 'tsumo')
+                        return "tsumo", None
+                else:
+                    print("Hand ready (Shape OK) but No Yaku (Liqi/Yaku needed). Cannot Tsumo.")
                     handle_win(player, player.hand[-1], 'tsumo')
                     return "tsumo", None
                     
@@ -229,10 +251,14 @@ class GameEngine:
             # Better to inline it into GameEngine or make it a method.
             
             # Ron Check
-            # Check conditions with standing hand + discard, keeping melds separate
+            # Check standing hand + discard, keeping melds separate
             tmp_standing = p.hand[:] + [discarded_tile]
             if is_win_hand(tmp_standing, p.melds):
-                options.append('ron')
+                # Calculate Yaku
+                yakus = check_yaku(p.hand, discarded_tile, p, is_tsumo=False)
+                valid_yakus = [y for y, h in yakus if y != 'dora']
+                if valid_yakus:
+                     options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')
             if can_pon(p.hand, discarded_tile) and not p.is_riichi: options.append('pon')

@@ -47,8 +47,40 @@ class AIPlayer(Player):
     def __init__(self, name:str, wind):
         super().__init__(name, wind)
         self.is_human = False
+
     def decide_discard(self):
-        """strategy for AI to discard"""
+        """strategy for AI to discard: minimize shanten"""
+        if self.is_riichi:
+            return len(self.hand) - 1
+
+        from src.core.shanten import ShantenCalculator
+        
+        best_discard_idx = -1
+        min_shanten = 99
+        
+        # Simple heuristic: try removing each tile and check shanten
+        candidates = []
+        
+        for i in range(len(self.hand)):
+            # simulate discard
+            tile = self.hand[i]
+            temp_hand = self.hand[:i] + self.hand[i+1:]
+            
+            calc = ShantenCalculator(temp_hand)
+            shanten, _, _ = calc.calculate(len(self.melds))
+            
+            if shanten < min_shanten:
+                min_shanten = shanten
+                candidates = [i]
+            elif shanten == min_shanten:
+                candidates.append(i)
+                
+        # If multiple candidates, pick one. 
+        # Future improvement: Pick logic based on Efficiency (Ukeire) or Safety.
+        # For now, random among best.
+        if candidates:
+            return random.choice(candidates)
+            
         return random.randint(0, len(self.hand) - 1)
 
 class HumanPlayer(Player):

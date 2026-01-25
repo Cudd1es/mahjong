@@ -1,6 +1,6 @@
 from collections import Counter
-from tiles import Tile
-from hand_checker import normalize_red, sort_hand
+from src.models.tiles import Tile
+from src.core.hand_checker import normalize_red, sort_hand
 
 def all_unique_tiles():
     """
@@ -21,16 +21,24 @@ class ShantenCalculator:
     def __init__(self, hand):
         self.hand = sort_hand(([normalize_red(t) for t in hand]))
 
-    def calculate(self):
+    def calculate(self, meld_count=0):
         """
         Returns:
             min_shanten: int, minimal shanten across all forms
             best_type: str, 'standard' or 'chiitoitsu' or 'kokushi'
             details: dict, shanten for each type
         """
-        s_std = self.shanten_standard(self.hand)
-        s_chiitoitsu = self.shanten_chiitoitsu(self.hand)
-        s_kokushi = self.shanten_kokushi(self.hand)
+        s_std = self.shanten_standard(self.hand, meld_count)
+        
+        # Chiitoitsu/Kokushi only valid if no open melds
+        # We assign high shanten if melds exist
+        if meld_count == 0:
+            s_chiitoitsu = self.shanten_chiitoitsu(self.hand)
+            s_kokushi = self.shanten_kokushi(self.hand)
+        else:
+            s_chiitoitsu = 99
+            s_kokushi = 99
+            
         min_shanten = min(s_std, s_chiitoitsu, s_kokushi)
         if min_shanten == s_std:
             shanten_type = 'standard'
@@ -73,7 +81,10 @@ class ShantenCalculator:
         return 6 - pairs + max(0, 7 - unique)
 
     @staticmethod
-    def shanten_standard(hand):
+    def shanten_standard(hand, meld_count=0):
+        # Base shanten is 8.
+        # Each set reduces by 2. (Need 4 sets) -> 8 - 4*2 = 0.
+        # Pair reduces by 1.
         min_shanten = [8] # use list not int to pass the value through the function
 
         def dfs(tiles, meld=0, pair=0):
@@ -116,11 +127,12 @@ class ShantenCalculator:
             if shanten < min_shanten[0]:
                 min_shanten[0] = shanten
 
-        dfs(hand, 0, 0)
+        # Initialize with known meld count
+        dfs(hand, meld_count, 0)
         return min_shanten[0]
 
     def waiting_tiles(self):
-        from wall import create_wall
+        from src.models.wall import create_wall
         all_types = set(create_wall())
         waits = []
         for t in all_types:
