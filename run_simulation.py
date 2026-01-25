@@ -4,6 +4,7 @@ from src.models.tiles import Tile
 from src.core.melds import can_pon, can_chi, can_kan, can_kakan, can_ankan
 from src.core.hand_checker import is_win_hand, sort_hand, normalize_red
 from src.core.game_utils import colored, handle_win, remove_tile_from_hand
+from src.core.yaku import check_yaku
 import sys
 import os
 import random
@@ -67,7 +68,11 @@ class SimulationGameEngine(GameEngine):
             # Check standing hand + discard, keeping melds logic separate
             tmp_standing = p.hand[:] + [discarded_tile]
             if is_win_hand(tmp_standing, p.melds):
-                options.append('ron')
+                # Calculate Yaku
+                yakus = check_yaku(p.hand, discarded_tile, p, is_tsumo=False)
+                valid_yakus = [y for y, h in yakus if y != 'dora']
+                if valid_yakus:
+                    options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')
             if can_pon(p.hand, discarded_tile) and not p.is_riichi: options.append('pon')
@@ -162,10 +167,16 @@ class SimulationGameEngine(GameEngine):
         # Always auto-kan/ankan if safe?
         # Random Riichi?
         
-        # Win Check
         if is_win_hand(player.hand, player.melds):
-            handle_win(player, player.hand[-1], 'tsumo')
-            return "tsumo", None
+            # Enforce Yaku Ari in Simulation too
+            tsumo_tile = player.hand[-1]
+            hand_13 = player.hand[:-1]
+            yakus = check_yaku(hand_13, tsumo_tile, player, is_tsumo=True)
+            valid_yakus = [y for y, h in yakus if y != 'dora']
+            if valid_yakus:
+                handle_win(player, player.hand[-1], 'tsumo')
+                return "tsumo", None
+            # Else ignored (Chicken Hand)
             
         # Kan Check
         if len(self.state.dead_wall) > 0:
