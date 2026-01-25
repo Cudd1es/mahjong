@@ -132,14 +132,15 @@ class GameEngine:
         # Need access to self.state.dead_wall
         # For brevity, I will copy the logic in a subsequent step or use simple copy now.
         if not player.is_human:
-            full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
-            if is_win_hand(full_hand):
+            # Check Tsumo using new signature (hand, melds)
+            # hand contains the drawn tile (standing hand)
+            if is_win_hand(player.hand, player.melds):
                 return "tsumo", None
             return "None", None
             
         while True:
-            full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
-            if is_win_hand(full_hand):
+            # Human Tsumo Check
+            if is_win_hand(player.hand, player.melds):
                 if ask_win("tsumo", player):
                     handle_win(player, player.hand[-1], 'tsumo')
                     return "tsumo", None
@@ -228,8 +229,9 @@ class GameEngine:
             # Better to inline it into GameEngine or make it a method.
             
             # Ron Check
-            tmp_hand = p.hand[:] + [discarded_tile] + [t for m in p.melds for t in m]
-            if is_win_hand(tmp_hand):
+            # Check conditions with standing hand + discard, keeping melds separate
+            tmp_standing = p.hand[:] + [discarded_tile]
+            if is_win_hand(tmp_standing, p.melds):
                 options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')

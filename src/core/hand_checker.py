@@ -10,29 +10,61 @@ def normalize_red(tile: Tile) -> Tile:
         return Tile(tile.suit, 5)
     return tile
 
-def is_win_hand(hand:list):
+def is_win_hand(hand:list, melds=None):
     """
     check if this hand is a winning hand
     winging hands:
     basic: 4 * melds + 1 * pair
+    
+    If melds is provided, it assumes 'hand' contains only the standing tiles, and 'melds' are locked sets.
     """
-    # Standard hand is 14 tiles. Each Kan adds 1 tile to the requirement (4 tiles vs 3).
-    # So valid lengths are 14, 15, 16, 17, 18.
-    if len(hand) < 14 or len(hand) > 18:
-        return False
+    if melds is None: melds = []
+    
+    # Calculate expected total length
+    # Each Kan is 1 set (counts for 3 tiles logic). 
+    # But physical count of Kan is 4.
+    # To normalize logic, we can just check if Standing Hand structure is valid (sets + pair).
+    
+    # Total units needed = 4 sets + 1 pair.
+    # We have N melds. So we need (4 - N) sets + 1 pair from standing hand.
+    # And standing hand length must be 3*(4-N) + 2.
+    
+    num_melds = len(melds)
+    if num_melds > 4: return False # Impossible
+    
+    needed_sets = 4 - num_melds
+    expected_len = needed_sets * 3 + 2
+    
+    if len(hand) != expected_len:
+        # Special case: 13-wait Kokushi (handles full hand check usually)
+        # If melds exist, Kokushi/Chiitoitsu is impossible (usually, unless weird local rules).
+        # We assume Melds means Standard Hand.
+        if num_melds > 0:
+             return False
+        # If no melds, then length must be 14 (or 13 if called for wait check? No, win check implies 14).
+        if len(hand) not in [14, 15, 16, 17, 18]: # Allowing Kans
+             return False
 
     hand = [normalize_red(tile) for tile in hand]
     hand = sort_hand(hand)
 
-    # check Kokushi Musou
-    if is_kokushi(hand):
+    # check Kokushi Musou (Only if no melds)
+    if not melds and is_kokushi(hand):
         return True, "kokushi"
 
-    # check chiitoitsu
-    if is_chiitoitsu(hand):
+    # check chiitoitsu (Only if no melds)
+    if not melds and is_chiitoitsu(hand):
         return True, "chiitoitsu"
 
     # check standard
+    # If melds provided, we check if standing hand splits perfectly into (4-N) sets + 1 pair.
+    # try_split_standard_hand ensures all tiles are consumed.
+    # If successful, it means we found X sets + 1 pair.
+    # The count X is determined by length. 
+    # e.g. Len 2 -> 0 sets + 1 pair.
+    # Len 5 -> 1 set + 1 pair.
+    # So we don't need to explicitly count X, valid split implies correct X.
+    
     is_standard_winning, head, pungs, chows = try_split_standard_hand(hand)
     if is_standard_winning:
         return True, "standard"
