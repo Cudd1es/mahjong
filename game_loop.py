@@ -1,10 +1,11 @@
 from wall import *
 from player import *
 import random
-from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait, try_split_standard_hand
-from melds import can_chi, can_pon, can_kan
+from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait, try_split_standard_hand, normalize_red
+from melds import can_chi, can_pon, can_kan, can_ankan, can_kakan
 from yaku import check_yaku
 from scoring import FuCalculator, ScoreTable
+from game_utils import handle_win
 
 def colored(tiles):
     return " ".join([t.to_colored_str() for t in tiles])
@@ -66,69 +67,113 @@ def initialize_game():
     
     return live_wall, dead_wall, players
 
-def check_self_win_or_riichi(player):
+def check_self_actions(player, dead_wall, live_wall):
     """
-    Check for Tsumo, Tenpai (discard suggestions), and Riichi opportunities.
-    Returns: "tsumo", "riichi", or "None"
+    Check for Tsumo, Kan (Ankan/Kakan), and Riichi.
+    Handles the Kan loop (Draw Rinshan -> Check Tsumo again).
+    Returns: 
+        (status_str, data)
+        status_str: "tsumo", "riichi", or "None"
+        data: For "riichi", a list of valid discard Tile objects that lead to Tenpai.
     """
-    return_val = "None"
     if not player.is_human:
-        return return_val
+        # Simple AI: just check Tsumo
+        full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
+        if is_win_hand(full_hand):
+            return "tsumo", None
+        return "None", None
+
+    while True: # Loop for multiple Kans
+        full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
         
-    full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
-    
-    # check Tsumo
-    if is_win_hand(full_hand):
-        if ask_win("tsumo", player):
-            print(f"{player.name} wins by Tsumo!")
+        # 1. Check Tsumo
+        if is_win_hand(full_hand):
+            if ask_win("tsumo", player):
+                handle_win(player, player.hand[-1], 'tsumo')
+                return "tsumo", None
+        
+        # 2. Check Ankan / Kakan
+        # Can only Kan if we have enough tiles and wall has Rinshan
+        if len(dead_wall) > 0:
+            ankan_opts = can_ankan(player.hand)
+            valid_kakans = []
+            for t in player.hand:
+                 if can_kakan(player.hand, player.melds, t):
+                     valid_kakans.append(t)
             
-            yaku = check_yaku(player.hand[:-1], player.hand[-1], player, is_tsumo=True)
-            yaku_list = [y[0] for y in yaku]
-            han = sum(h for y, h in yaku)
-            
-            # Calculate Fu
-            # Re-split to get components
-            _, head, pungs, chows = try_split_standard_hand(full_hand)
-            win_tile = player.hand[-1] # Drawn tile
-            
-            fu_calc = FuCalculator()
-            # Note: We pass pungs and chows from split. 
-            # FuCalculator will separate Open/Closed based on player.melds
-            fu = fu_calc.calculate_fu(player.hand, player.melds, win_tile, 'tsumo', player, pungs, chows, head)
-            
-            # Pinfu Exception Override (Pinfu Tsumo = 20 Fu)
-            if 'pinfu' in yaku_list:
-                fu = 20
+            kan_options = []
+            if ankan_opts:
+                kan_options.append('ankan')
+            if valid_kakans:
+                kan_options.append('kakan')
                 
-            print(f"Yaku: {yaku_list}")
-            print(f"{han} Han, {fu} Fu")
-            
-            # Calculate Score
-            score = ScoreTable.calculate_points(han, fu, player.wind == 'E', True)
-            print(f"Score: {score}")
-
-            return "tsumo"
-
-    # check waiting hand
-    try:
-        discard_tiles = discard_to_wait(player.hand[:], player.melds)
-    except ValueError as e:
-        print(f"Warning: Hand check failed: {e}")
+            if kan_options:
+                msg = f"{player.name}, you can declare Kan: "
+                opts_list = []
+                idx = 1
+                flattened_choices = [] # (type, tiles)
+                
+                for group in ankan_opts:
+                    opts_list.append(f"[{idx}] Ankan {colored(group)}")
+                    flattened_choices.append(('ankan', group))
+                    idx += 1
+                
+                for t in valid_kakans:
+                    m = can_kakan(player.hand, player.melds, t)[0] 
+                    opts_list.append(f"[{idx}] Kakan {colored([t])} on {colored(m)}")
+                    flattened_choices.append(('kakan', t, m))
+                    idx += 1
+                    
+                print(msg + ", ".join(opts_list))
+                choice = input("Enter number to Kan, or 'n' to skip: ").strip().lower()
+                
+                if choice.isdigit() and 1 <= int(choice) <= len(flattened_choices):
+                    selection = flattened_choices[int(choice)-1]
+                    type_kan = selection[0]
+                    
+                    if type_kan == 'ankan':
+                        tiles = selection[1]
+                        print(f"{player.name} declares Ankan with {colored(tiles)}!")
+                        for t in tiles:
+                             remove_tile_from_hand(player.hand, t)
+                        player.melds.append(tiles)
+                        
+                    elif type_kan == 'kakan':
+                        tile = selection[1]
+                        target_meld = selection[2]
+                        print(f"{player.name} declares Kakan with {tile}!")
+                        remove_tile_from_hand(player.hand, tile)
+                        player.melds.remove(target_meld)
+                        new_meld = target_meld + [tile]
+                        player.melds.append(new_meld)
+                        
+                    # Draw Rinshan
+                    rinshan = player.draw(dead_wall)
+                    print(f"{player.name} drew Rinshan tile: {rinshan}")
+                    continue
+                    
+        # 3. Check Waiting / Tenpai (Advice)
         discard_tiles = []
+        try:
+            discard_tiles = discard_to_wait(player.hand[:], player.melds)
+            if discard_tiles:
+                print("you can discard the following to Tenpai:")
+                for tile, waiting in discard_tiles:
+                    print(f"{tile}: waiting: {waiting}")
+        except ValueError:
+            pass
 
-    if discard_tiles and len(discard_tiles) > 0:
-        print("you can discard the following to Tenpai:")
-        for tile, waiting in discard_tiles:
-            print(f"{tile}: waiting: {waiting}")
-
-    # check riichi
-    if not player.is_riichi and discard_tiles and not player.melds:
-        is_riichi = ask_riichi(player)
-        if is_riichi:
-            player.riichi_declared = True # declare riichi in this round
-            return "riichi"
-            
-    return "None"
+        # 4. Check Riichi
+        if not player.is_riichi and not player.melds: 
+            if discard_tiles: 
+                is_riichi = ask_riichi(player)
+                if is_riichi:
+                    player.riichi_declared = True
+                    # Return the list of valid discard tiles
+                    valid_discards = [dt[0] for dt in discard_tiles]
+                    return "riichi", valid_discards
+                    
+        return "None", None
 
 def process_responses(players, discarder_idx, discarded_tile, dead_wall):
     """
@@ -165,43 +210,28 @@ def process_responses(players, discarder_idx, discarded_tile, dead_wall):
         drawn_tile = kan_player.draw(dead_wall)
         print(f"{kan_player.name} drew {drawn_tile} (Rinshan)")
         
-        # Check Rinshan Kaihou (Tsumo on Kan)
-        full_hand_kan = kan_player.hand + [t for meld in kan_player.melds for t in meld]
-        if is_win_hand(full_hand_kan):
-            if ask_win("tsumo", kan_player):
-                print(f"{kan_player.name} wins by Tsumo (Rinshan Kaihou)!")
-                
-                yaku = check_yaku(kan_player.hand[:-1], kan_player.hand[-1], kan_player, is_tsumo=True)
-                yaku_names = [y[0] for y in yaku]
-                han = sum(h for y, h in yaku)
-                
-                # Rinshan Kaihou adds 1 han? Usually check_yaku should handle it if passed correct flags.
-                # Assuming yaku.py handles 'rinshan' if we tell it? 
-                # Currently check_yaku signature doesn't take 'is_rinshan'.
-                # For now, just calculating generic Tsumo score.
-                
-                _, head, pungs, chows = try_split_standard_hand(full_hand_kan)
-                win_tile = kan_player.hand[-1]
-                
-                fu_calc = FuCalculator()
-                fu = fu_calc.calculate_fu(kan_player.hand, kan_player.melds, win_tile, 'tsumo', kan_player, pungs, chows, head)
-                
-                if 'pinfu' in yaku_names:
-                    fu = 20
-                
-                print(f"Yaku: {yaku_names}")
-                print(f"{han} Han, {fu} Fu")
-                
-                score = ScoreTable.calculate_points(han, fu, kan_player.wind == 'E', True)
-                print(f"Score: {score}")
-
-                return 'tsumo', idx, None
+        # Check Tsumo / Consecutive Kans / Riichi (Blocked by open meld)
+        # We use check_self_actions to handle the loop
+        status, _ = check_self_actions(kan_player, dead_wall, [])
         
-        # Discard after Kan
+        if status == "tsumo":
+            # handle_win is already called inside check_self_actions
+            return 'tsumo', idx, None
+            
+        # If not win, proceed to discard
         print(f"Hand after meld: {colored(kan_player.hand)}")
         d_idx = kan_player.decide_discard()
         new_discarded = kan_player.discard(d_idx)
         print(f"{kan_player.name} discarded {new_discarded} after meld")
+        
+        # If Riichi was declared (Unlikely/Impossible on Daiminkan but possible on Ankan if called recursively?)
+        # check_self_actions handles "riichi" return.
+        # But Daiminkan prevents Riichi.
+        # If we somehow allowed it, we'd need to handle status == "riichi".
+        if status == "riichi":
+            kan_player.is_riichi = True
+            print(f"{kan_player.name} confirms Riichi with discard {new_discarded}!")
+            
         return 'kan', idx, new_discarded
 
     elif action in ['pon', 'chi']:
@@ -350,17 +380,45 @@ def play_round():
         print(f"Melds: {current_player.melds}")
         print(f"Hand: {colored(current_player.hand)}")
         
-        status = check_self_win_or_riichi(current_player)
+        pending_riichi = False
+        valid_riichi_discards = []
+        status, data = check_self_actions(current_player, dead_wall, live_wall)
         if status == "tsumo":
             return
-        pending_riichi = False
         if status == "riichi":
             print(f"{current_player.name} is declaring Riichi! Please select your discard.")
             pending_riichi = True
+            valid_riichi_discards = data
             # Do NOT set is_riichi = True yet, so decide_discard() allows input.
 
         # 3. Discard
-        discard_index = current_player.decide_discard()
+        # If Pending Riichi, we must enforce selecting a valid tile
+        discard_index = -1
+        while True:
+            discard_index = current_player.decide_discard()
+            if not pending_riichi:
+                break
+            
+            # Validate discard for Riichi
+            # Access the tile WITHOUT removing it yet (decide_discard returns index)
+            if 0 <= discard_index < len(current_player.hand):
+                candidate = current_player.hand[discard_index]
+                # Check if this candidate is in valid_riichi_discards
+                # Use value check + suit check (simple implementation)
+                is_valid = False
+                for v in valid_riichi_discards:
+                    # Normalize both for comparison (just in case)
+                    if normalize_red(v) == normalize_red(candidate):
+                        is_valid = True
+                        break
+                
+                if is_valid:
+                    break
+                else:
+                    print(f"Invalid discard for Riichi! You must discard one of: {colored(valid_riichi_discards)}")
+            else:
+                 pass # Let discard() handle out of bounds (which throws error) or re-prompt
+
         discarded_tile = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded_tile}")
         
@@ -382,30 +440,7 @@ def play_round():
                 if action == 'ron':
                     print(f"{players[responder_idx].name} wins by Ron!")
                     winner = players[responder_idx]
-                    yaku = check_yaku(winner.hand, active_discard, winner, False)
-                    yaku_names = [y[0] for y in yaku]
-                    han = sum(h for y, h in yaku)
-                    
-                    # Calculate Fu
-                    # Re-construct full hand for split (Ron uses active_discard)
-                    full_hand_ron = winner.hand[:] + [active_discard] + [t for m in winner.melds for t in m]
-                    
-                    # Check Chiitoitsu special case for Fu
-                    is_win, type_str = is_win_hand(full_hand_ron)
-                    
-                    fu_calc = FuCalculator()
-                    
-                    if type_str == 'chiitoitsu':
-                        fu = 25
-                    else:
-                        _, head, pungs, chows = try_split_standard_hand(full_hand_ron)
-                        fu = fu_calc.calculate_fu(winner.hand, winner.melds, active_discard, 'ron', winner, pungs, chows, head)
-                        
-                    print(f"Yaku: {yaku_names}")
-                    print(f"{han} Han, {fu} Fu")
-                    
-                    score = ScoreTable.calculate_points(han, fu, winner.wind == 'E', False)
-                    print(f"Score: {score}")
+                    func_score = handle_win(winner, active_discard, 'ron')
                 return
             
             elif action == 'kan':
