@@ -1,9 +1,10 @@
 from wall import *
 from player import *
 import random
-from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait
+from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait, try_split_standard_hand
 from melds import can_chi, can_pon, can_kan
 from yaku import check_yaku
+from scoring import FuCalculator, ScoreTable
 
 def colored(tiles):
     return " ".join([t.to_colored_str() for t in tiles])
@@ -80,15 +81,32 @@ def check_self_win_or_riichi(player):
     if is_win_hand(full_hand):
         if ask_win("tsumo", player):
             print(f"{player.name} wins by Tsumo!")
-            # Calculate and display score (WIP)
+            
             yaku = check_yaku(player.hand[:-1], player.hand[-1], player, is_tsumo=True)
-            yaku_list = []
-            han = 0
-            for y, h in yaku:
-                yaku_list.append(y)
-                han += h
+            yaku_list = [y[0] for y in yaku]
+            han = sum(h for y, h in yaku)
+            
+            # Calculate Fu
+            # Re-split to get components
+            _, head, pungs, chows = try_split_standard_hand(full_hand)
+            win_tile = player.hand[-1] # Drawn tile
+            
+            fu_calc = FuCalculator()
+            # Note: We pass pungs and chows from split. 
+            # FuCalculator will separate Open/Closed based on player.melds
+            fu = fu_calc.calculate_fu(player.hand, player.melds, win_tile, 'tsumo', player, pungs, chows, head)
+            
+            # Pinfu Exception Override (Pinfu Tsumo = 20 Fu)
+            if 'pinfu' in yaku_list:
+                fu = 20
+                
             print(f"Yaku: {yaku_list}")
-            print(f"Han: {han}")
+            print(f"{han} Han, {fu} Fu")
+            
+            # Calculate Score
+            score = ScoreTable.calculate_points(han, fu, player.wind == 'E', True)
+            print(f"Score: {score}")
+
             return "tsumo"
 
     # check waiting hand
@@ -148,9 +166,35 @@ def process_responses(players, discarder_idx, discarded_tile, dead_wall):
         print(f"{kan_player.name} drew {drawn_tile} (Rinshan)")
         
         # Check Rinshan Kaihou (Tsumo on Kan)
-        if is_win_hand(kan_player.hand + [t for meld in kan_player.melds for t in meld]):
+        full_hand_kan = kan_player.hand + [t for meld in kan_player.melds for t in meld]
+        if is_win_hand(full_hand_kan):
             if ask_win("tsumo", kan_player):
                 print(f"{kan_player.name} wins by Tsumo (Rinshan Kaihou)!")
+                
+                yaku = check_yaku(kan_player.hand[:-1], kan_player.hand[-1], kan_player, is_tsumo=True)
+                yaku_names = [y[0] for y in yaku]
+                han = sum(h for y, h in yaku)
+                
+                # Rinshan Kaihou adds 1 han? Usually check_yaku should handle it if passed correct flags.
+                # Assuming yaku.py handles 'rinshan' if we tell it? 
+                # Currently check_yaku signature doesn't take 'is_rinshan'.
+                # For now, just calculating generic Tsumo score.
+                
+                _, head, pungs, chows = try_split_standard_hand(full_hand_kan)
+                win_tile = kan_player.hand[-1]
+                
+                fu_calc = FuCalculator()
+                fu = fu_calc.calculate_fu(kan_player.hand, kan_player.melds, win_tile, 'tsumo', kan_player, pungs, chows, head)
+                
+                if 'pinfu' in yaku_names:
+                    fu = 20
+                
+                print(f"Yaku: {yaku_names}")
+                print(f"{han} Han, {fu} Fu")
+                
+                score = ScoreTable.calculate_points(han, fu, kan_player.wind == 'E', True)
+                print(f"Score: {score}")
+
                 return 'tsumo', idx, None
         
         # Discard after Kan
@@ -309,14 +353,20 @@ def play_round():
         status = check_self_win_or_riichi(current_player)
         if status == "tsumo":
             return
+        pending_riichi = False
         if status == "riichi":
-            print(f"{current_player.name} declared Riichi!")
-            current_player.is_riichi = True
+            print(f"{current_player.name} is declaring Riichi! Please select your discard.")
+            pending_riichi = True
+            # Do NOT set is_riichi = True yet, so decide_discard() allows input.
 
         # 3. Discard
         discard_index = current_player.decide_discard()
         discarded_tile = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded_tile}")
+        
+        if pending_riichi:
+            print(f"{current_player.name} confirms Riichi with discard {discarded_tile}!")
+            current_player.is_riichi = True
 
         # 4. Responses Loop (Handling Ron/Kan/Pon/Chi and subsequent discards recursively-ish)
         # We need a loop here because a Kan/Pon/Chi results in a new discard which might trigger another Ron.
@@ -331,10 +381,31 @@ def play_round():
                 # Win detected
                 if action == 'ron':
                     print(f"{players[responder_idx].name} wins by Ron!")
-                    # Check yaku for winner (WIP logging)
                     winner = players[responder_idx]
                     yaku = check_yaku(winner.hand, active_discard, winner, False)
-                    print(f"Yaku: {[y[0] for y in yaku]}, Han: {sum(y[1] for y in yaku)}")
+                    yaku_names = [y[0] for y in yaku]
+                    han = sum(h for y, h in yaku)
+                    
+                    # Calculate Fu
+                    # Re-construct full hand for split (Ron uses active_discard)
+                    full_hand_ron = winner.hand[:] + [active_discard] + [t for m in winner.melds for t in m]
+                    
+                    # Check Chiitoitsu special case for Fu
+                    is_win, type_str = is_win_hand(full_hand_ron)
+                    
+                    fu_calc = FuCalculator()
+                    
+                    if type_str == 'chiitoitsu':
+                        fu = 25
+                    else:
+                        _, head, pungs, chows = try_split_standard_hand(full_hand_ron)
+                        fu = fu_calc.calculate_fu(winner.hand, winner.melds, active_discard, 'ron', winner, pungs, chows, head)
+                        
+                    print(f"Yaku: {yaku_names}")
+                    print(f"{han} Han, {fu} Fu")
+                    
+                    score = ScoreTable.calculate_points(han, fu, winner.wind == 'E', False)
+                    print(f"Score: {score}")
                 return
             
             elif action == 'kan':
