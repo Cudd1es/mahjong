@@ -40,4 +40,19 @@ def can_ankan(hand):
         tiles_count[t] = tiles_count.get(t, 0) + 1
     return [[tile] * 4 for tile, count in tiles_count.items() if count == 4]
 
+def can_kakan(hand, melds, drawn_tile):
+    """
+    Check for Added Kan (Kakan/Chankan).
+    Player must have an open Pon of the same suit/value as drawn_tile.
+    """
+    drawn_tile = normalize_red(drawn_tile)
+    options = []
+    # Check existing melds for a Pon of this tile
+    for m in melds:
+        # A Pon has 3 tiles. We check one representative.
+        if len(m) == 3 and normalize_red(m[0]) == drawn_tile:
+            # Found a matching Pon
+            options.append(m)
+    return options
+
 
