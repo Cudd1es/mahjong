@@ -1,7 +1,7 @@
 from wall import *
 from player import *
 import random
-from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait, try_split_standard_hand
+from hand_checker import is_win_hand, is_waiting_hand, discard_to_wait, try_split_standard_hand, normalize_red
 from melds import can_chi, can_pon, can_kan, can_ankan, can_kakan
 from yaku import check_yaku
 from scoring import FuCalculator, ScoreTable
@@ -71,14 +71,17 @@ def check_self_actions(player, dead_wall, live_wall):
     """
     Check for Tsumo, Kan (Ankan/Kakan), and Riichi.
     Handles the Kan loop (Draw Rinshan -> Check Tsumo again).
-    Returns: "tsumo", "riichi", or "None"
+    Returns: 
+        (status_str, data)
+        status_str: "tsumo", "riichi", or "None"
+        data: For "riichi", a list of valid discard Tile objects that lead to Tenpai.
     """
     if not player.is_human:
         # Simple AI: just check Tsumo
         full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
         if is_win_hand(full_hand):
-            return "tsumo"
-        return "None"
+            return "tsumo", None
+        return "None", None
 
     while True: # Loop for multiple Kans
         full_hand = player.hand[:] + [t for meld in player.melds for t in meld]
@@ -87,33 +90,16 @@ def check_self_actions(player, dead_wall, live_wall):
         if is_win_hand(full_hand):
             if ask_win("tsumo", player):
                 handle_win(player, player.hand[-1], 'tsumo')
-                return "tsumo"
+                return "tsumo", None
         
         # 2. Check Ankan / Kakan
         # Can only Kan if we have enough tiles and wall has Rinshan
         if len(dead_wall) > 0:
             ankan_opts = can_ankan(player.hand)
-            # For Kakan, we need to know the drawn tile? 
-            # Actually, Kakan applies to ANY tile in hand that matches a Pon.
-            # But usually it's the just-drawn tile. 
-            # However, in computer implementations, you can use any valid tile from hand.
-            kakan_opts = can_kakan(player.hand, player.melds, player.hand[-1]) 
-            # We pass hand[-1] as dummy to kakan? 
-            # Wait, my kakan implementation filtered by drawn_tile. 
-            # Let's verify melds.py logic.
-            # It checks `drawn_tile` against melds.
-            # If we want to allow Kakan with *any* tile in hand, we need to iterate hand.
-            # For now, let's assume we check Kakan for ALL tiles in hand? 
-            # Or just simplify to checking if we can Kan.
-            
-            # Re-read melds.py kakan: it takes `drawn_tile`. 
-            # We should probably iterate valid kakan tiles.
             valid_kakans = []
             for t in player.hand:
                  if can_kakan(player.hand, player.melds, t):
                      valid_kakans.append(t)
-            # Remove duplicates based on value/suit
-            # Actually can_kakan returns the MELD that can be upgraded.
             
             kan_options = []
             if ankan_opts:
@@ -133,9 +119,7 @@ def check_self_actions(player, dead_wall, live_wall):
                     idx += 1
                 
                 for t in valid_kakans:
-                    # Find the meld
-                    # This is slightly inefficient but clarity first
-                    m = can_kakan(player.hand, player.melds, t)[0] # take first matching meld
+                    m = can_kakan(player.hand, player.melds, t)[0] 
                     opts_list.append(f"[{idx}] Kakan {colored([t])} on {colored(m)}")
                     flattened_choices.append(('kakan', t, m))
                     idx += 1
@@ -150,7 +134,6 @@ def check_self_actions(player, dead_wall, live_wall):
                     if type_kan == 'ankan':
                         tiles = selection[1]
                         print(f"{player.name} declares Ankan with {colored(tiles)}!")
-                        # Remove 4 tiles, add to melds
                         for t in tiles:
                              remove_tile_from_hand(player.hand, t)
                         player.melds.append(tiles)
@@ -160,11 +143,6 @@ def check_self_actions(player, dead_wall, live_wall):
                         target_meld = selection[2]
                         print(f"{player.name} declares Kakan with {tile}!")
                         remove_tile_from_hand(player.hand, tile)
-                        # Find and update meld
-                        # target_meld is a reference to the list in player.melds?
-                        # Lists are mutable, but we need to ensure we found the EXACT list object
-                        # or update by value. 
-                        # Safer to remove old meld and add new 4-tile meld.
                         player.melds.remove(target_meld)
                         new_meld = target_meld + [tile]
                         player.melds.append(new_meld)
@@ -172,10 +150,10 @@ def check_self_actions(player, dead_wall, live_wall):
                     # Draw Rinshan
                     rinshan = player.draw(dead_wall)
                     print(f"{player.name} drew Rinshan tile: {rinshan}")
-                    # Loop continues, re-evaluating Tsumo/Kan with new hand
                     continue
                     
         # 3. Check Waiting / Tenpai (Advice)
+        discard_tiles = []
         try:
             discard_tiles = discard_to_wait(player.hand[:], player.melds)
             if discard_tiles:
@@ -187,32 +165,15 @@ def check_self_actions(player, dead_wall, live_wall):
 
         # 4. Check Riichi
         if not player.is_riichi and not player.melds: 
-            # Note: Open melds disqualify Riichi. Ankan (4 tiles) is considered closed?
-            # Usually strict rule: Ankan in melds list needs to be marked as Ankan?
-            # Our `player.melds` structure is just list of lists.
-            # Logic: If `player.melds` is not empty, can't Riichi?
-            # CORRECT: In standard Riichi, Ankan DOES NOT break Menzen (Closed) status.
-            # But open melds (Chi/Pon/Daiminkan) DO.
-            # We need to distinguish Ankan in melds.
-            # Current Implementation: `player.melds` stores all melds. 
-            # `is_riichi` check "and not player.melds" assumes ANY meld breaks Riichi.
-            # FIX: We need to check if all melds are Ankan.
-            # For this task, I will assume ANY meld prevents Riichi to stay safe/simple, 
-            # OR I should check the meld length? Ankan is 4 tiles, but Daiminkan is also 4.
-            # We don't have a flag for "Open/Closed" on melds yet. 
-            # TODO: Improve Meld structure. For now, let's stick to existing logic:
-            # If valid waiting hand and not Riichi, ask.
-            
-            # Simple fix: If we have melds, we skip Riichi. 
-            # (Limitation: Can't Riichi with Ankan. Acceptable for now).
-            
             if discard_tiles: 
                 is_riichi = ask_riichi(player)
                 if is_riichi:
                     player.riichi_declared = True
-                    return "riichi"
+                    # Return the list of valid discard tiles
+                    valid_discards = [dt[0] for dt in discard_tiles]
+                    return "riichi", valid_discards
                     
-        return "None"
+        return "None", None
 
 def process_responses(players, discarder_idx, discarded_tile, dead_wall):
     """
@@ -251,7 +212,7 @@ def process_responses(players, discarder_idx, discarded_tile, dead_wall):
         
         # Check Tsumo / Consecutive Kans / Riichi (Blocked by open meld)
         # We use check_self_actions to handle the loop
-        status = check_self_actions(kan_player, dead_wall, [])
+        status, _ = check_self_actions(kan_player, dead_wall, [])
         
         if status == "tsumo":
             # handle_win is already called inside check_self_actions
@@ -419,29 +380,45 @@ def play_round():
         print(f"Melds: {current_player.melds}")
         print(f"Hand: {colored(current_player.hand)}")
         
-        status = check_self_actions(current_player, dead_wall, live_wall)
-        if status == "tsumo":
-            # handle_win called inside check_self_actions? 
-            # No, I removed it from check_self_actions to keep it clean? 
-            # Wait, I refactored `check_self_actions` to CALL `ask_win` which returns True/False.
-            # But I removed the PRINT/CALC logic from there?
-            # Let's check the replacement content for `check_self_actions`.
-            # Ah, in my proposed replacement, I left `ask_win` but I removed the calculation block
-            # I need to put `handle_win` call INSIDE `check_self_actions` when Tsumo is confirmed!
-            # Otherwise it just returns "tsumo" and we exit without printing score.
-            # My current replacement for `check_self_actions` has:
-            # if ask_win(...): return "tsumo"
-            # It misses the report.
-            # I must fix that in the replacement content.
-            return
         pending_riichi = False
+        valid_riichi_discards = []
+        status, data = check_self_actions(current_player, dead_wall, live_wall)
+        if status == "tsumo":
+            return
         if status == "riichi":
             print(f"{current_player.name} is declaring Riichi! Please select your discard.")
             pending_riichi = True
+            valid_riichi_discards = data
             # Do NOT set is_riichi = True yet, so decide_discard() allows input.
 
         # 3. Discard
-        discard_index = current_player.decide_discard()
+        # If Pending Riichi, we must enforce selecting a valid tile
+        discard_index = -1
+        while True:
+            discard_index = current_player.decide_discard()
+            if not pending_riichi:
+                break
+            
+            # Validate discard for Riichi
+            # Access the tile WITHOUT removing it yet (decide_discard returns index)
+            if 0 <= discard_index < len(current_player.hand):
+                candidate = current_player.hand[discard_index]
+                # Check if this candidate is in valid_riichi_discards
+                # Use value check + suit check (simple implementation)
+                is_valid = False
+                for v in valid_riichi_discards:
+                    # Normalize both for comparison (just in case)
+                    if normalize_red(v) == normalize_red(candidate):
+                        is_valid = True
+                        break
+                
+                if is_valid:
+                    break
+                else:
+                    print(f"Invalid discard for Riichi! You must discard one of: {colored(valid_riichi_discards)}")
+            else:
+                 pass # Let discard() handle out of bounds (which throws error) or re-prompt
+
         discarded_tile = current_player.discard(discard_index)
         print(f"{current_player.name} discarded {discarded_tile}")
         

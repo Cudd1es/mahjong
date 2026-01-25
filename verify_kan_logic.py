@@ -31,7 +31,7 @@ class TestKanLogic(unittest.TestCase):
         # 3. Draw Rinshan (W).
         # 4. Loop again. No Tsumo, No Kan. Return None.
         
-        status = check_self_actions(p, dead_wall, live_wall)
+        status, _ = check_self_actions(p, dead_wall, live_wall)
         
         print(f"Status: {status}")
         print(f"Hand: {p.hand}")
@@ -71,7 +71,7 @@ class TestKanLogic(unittest.TestCase):
         live_wall = []
         
         # User selects 1 to Kakan
-        status = check_self_actions(p, dead_wall, live_wall)
+        status, _ = check_self_actions(p, dead_wall, live_wall)
         
         # Verify
         self.assertEqual(len(p.melds), 1)
@@ -86,7 +86,7 @@ class TestKanLogic(unittest.TestCase):
         self.assertIn(Tile('z', 'N'), p.hand)
 
     @patch('game_loop.check_responses')
-    @patch('game_loop.check_self_actions', return_value="None")
+    @patch('game_loop.check_self_actions', return_value=("None", None))
     @patch('builtins.input', return_value='0') # discard index 0
     def test_daiminkan_flow(self, mock_input, mock_self_actions, mock_check_responses):
         print("\nTesting Daiminkan Flow in process_responses...")
