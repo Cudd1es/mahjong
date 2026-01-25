@@ -16,7 +16,9 @@ def is_win_hand(hand:list):
     winging hands:
     basic: 4 * melds + 1 * pair
     """
-    if len(hand) != 14:
+    # Standard hand is 14 tiles. Each Kan adds 1 tile to the requirement (4 tiles vs 3).
+    # So valid lengths are 14, 15, 16, 17, 18.
+    if len(hand) < 14 or len(hand) > 18:
         return False
 
     hand = [normalize_red(tile) for tile in hand]
@@ -91,10 +93,25 @@ def split_melds(tiles, pung_list=None, chow_lsit=None):
 
     if not tiles:
         return True, pung_list[:], chow_lsit[:] # no remaining tile in the list means the original tiles is consisted of melds
-    if len(tiles) % 3 != 0:
-        return False, [], []
+    
+    # Relaxed length check for Kans
+    # Normal melds are 3 tiles, Kan is 4.
+    # We can't strictly check % 3 anymore without knowing Kan count beforehand.
+    # But recursively, we just need to ensure we can exhaust the tiles.
 
     first_tile = tiles[0]
+
+    # check kan
+    if tiles.count(first_tile) == 4:
+        new_tiles = tiles[:]
+        meld = []
+        for _ in range(4):
+            new_tiles.remove(first_tile)
+            meld.append(first_tile)
+        # We treat Kan as a special Pung here for now
+        flag, pungs, chows = split_melds(new_tiles, pung_list + [meld], chow_lsit)
+        if flag:
+            return True, pungs, chows
 
     # check pung
     if tiles.count(first_tile) >= 3:
@@ -167,8 +184,15 @@ def discard_to_wait(hand:list[Tile], melds):
     """
     full_melds = [t for meld in melds for t in meld]
     full_hand = hand[:] + full_melds
-    if len(full_hand) != 14:
-        raise ValueError("Hand must contain 14 tiles (after drawing)")
+    
+    # Calculate expected hand size: 14 + number of Kans
+    # Each Kan has 4 tiles but counts as 1 meld (3 tiles worth of space in standard hand structure)
+    # So for each Kan, the physical tile count increases by 1.
+    num_kans = sum(1 for m in melds if len(m) == 4)
+    expected_size = 14 + num_kans
+
+    if len(full_hand) != expected_size:
+        raise ValueError(f"Hand must contain {expected_size} tiles (after drawing), but got {len(full_hand)}")
     results = set()
     for i in range(len(hand)):
         tmp_hand = hand[:]
