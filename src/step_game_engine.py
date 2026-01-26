@@ -97,20 +97,12 @@ class StepGameEngine:
         # We need to ensure Bot objects are used or `is_human` attr.
         # GameState relies on `Player` class.
         # Let's assume index 0 is Human.
-        if self.state.current_player_idx != 0:
-            # AI Logic
-            # 1. Decide discard
-            # Use `decide_discard` method if available (AIPlayer) or random.
-            # In GameEngine refactor, we didn't inject AIPlayers yet? 
-            # We initialized standard `Player` in `StepGameEngine.__init__`?
-            # Actually `StepGameEngine` start_game inits `GameState`. `GameState` inits `Player`s.
-            # `Player` has `decide_discard` (random/input).
-            # We need to improve `decide_discard` to be smarter or use Shanten?
-            # For now, let's just pick one.
-            d_idx = player.decide_discard()
-            return self.action_discard(self.state.current_player_idx, d_idx)
-            
-        return {"type": "event", "event": "draw", "player_idx": self.state.current_player_idx, "tile": str(tile)}
+        # Move to DISCARD phase
+        self.phase = "WAIT_DISCARD"
+        
+        # PURE ENGINE: Always return input_required
+        # Drivers (CLI/Sim) must decide what to do.
+        return {"type": "input_required", "action": "discard", "player_idx": self.state.current_player_idx}
 
     def action_discard(self, player_idx, tile_idx):
         if self.phase != "WAIT_DISCARD":
@@ -183,16 +175,8 @@ class StepGameEngine:
                 
             if allowed:
                 responses[idx] = allowed
-                # AI Auto-Resolution buffer
-                # If Bot, we must decide NOW or StepEngine will hang.
-                # Heuristic: AI always skips for now (MVP). 
-                # Real AI: Check 'ron' always, 'pon'/'chi' sometimes.
-                # if idx != 0: # Assume 0 is human
-                #     action = 'skip'
-                #     if 'ron' in allowed: action = 'ron'
-                #     # Buffer the response
-                #     self.received_responses[idx] = {"action": action, "extra": None}
-                #     print(f"[Engine] AI Player {idx} auto-responded: {action} (allowed: {allowed})")
+                # AI Auto-Resolution buffer removed.
+                # Engine is pure state machine now.
                 pass
                 
         if responses:

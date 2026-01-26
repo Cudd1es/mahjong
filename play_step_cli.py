@@ -101,31 +101,37 @@ def get_user_response(player, options, tile):
             print("\nExiting...")
             sys.exit(0)
 
+import argparse
+
 def play_cli():
-    # Setup
+    parser = argparse.ArgumentParser(description="Step Mahjong CLI")
+    parser.add_argument("--humans", type=int, default=1, help="Number of human players (0-4)")
+    args = parser.parse_args()
+    num_humans = args.humans
+
+    print(f"Starting Mahjong Step CLI with {num_humans} Human(s)...")
     engine = StepGameEngine()
     engine.start_game()
     
-    # Setup players (0 is Human P1)
-    sim_players = [
-        None, 
-        SimulationPlayer("P2", "S"),
-        SimulationPlayer("P3", "W"),
-        SimulationPlayer("P4", "N")
-    ]
+    # Setup players
+    # indices < num_humans -> None (Human)
+    # indices >= num_humans -> Bot
+    sim_players = []
     
-    # Sync names and winds to match GameEngine default
-    # GameEngine uses P1(E), P2(S), P3(W), P4(N)
-    engine.state.players[0].name = "P1"
-    engine.state.players[0].wind = "E"
-    
-    for i in range(1, 4):
-        engine.state.players[i].name = sim_players[i].name
-        engine.state.players[i].wind = sim_players[i].wind
+    for i in range(4):
+        if i < num_humans:
+            sim_players.append(None) # Human placeholder
+            engine.state.players[i].name = f"You(P{i})"
+            engine.state.players[i].wind = ['E','S','W','N'][i]
+        else:
+            bot = SimulationPlayer(f"Bot{i}", ['E','S','W','N'][i])
+            sim_players.append(bot)
+            engine.state.players[i].name = bot.name
+            engine.state.players[i].wind = bot.wind
         
     # Initial print
     for p in engine.state.players:
-        print(f"{p.name} ({p.wind}) hand: {p.hand}") # Uses __repr__ list format
+        print(f"{p.name} ({p.wind}) hand: {p.hand}") 
         
     step = engine.next_step()
     
@@ -149,31 +155,28 @@ def play_cli():
             p_name = p_obj.name if p_obj else "Unknown"
             
             if evt == 'draw':
-                # GameEngine: "round X P1 (E)'s turn---" then "P1 (E) drew 8s"
-                # StepEngine sends draw event. We can print round info here if it's the start of turn (draw).
-                
                 # Check if we should print round header
-                # We can track last round count?
                 print(f"\nround {engine.state.round_count} {p_name} ({p_obj.wind})'s turn---")
-                print(f"{p_name} ({p_obj.wind}) drew {step['tile']}")
-                print(f"Melds: {p_obj.melds}")
-                # print(f"Hand: {colored(p_obj.hand)}") # Only print hand for others? 
-                # GameEngine prints hand for current player always.
-                # But for Human, we print it in get_tile.
-                if p_idx != 0:
-                     print(f"Hand: {colored(p_obj.hand)}")
+                
+                # If Hand is Human (any human), show it? 
+                # Or only if it's "Me"?
+                # With multiple humans, we probably want to assume hot-seat.
+                # Just print drawing info.
+                
+                # If Human, print "You drew..."
+                if sim_players[p_idx] is None:
+                    print(f"{p_name} drew {step['tile']}")
+                    print(f"Melds: {p_obj.melds}")
+                    # Print hand for active human?
+                    print(f"Hand: {colored(p_obj.hand)}")
                 else:
-                     # For human, we will print in input phase usually.
-                     # But consistency...
-                     print(f"Hand: {colored(p_obj.hand)}")
+                    print(f"{p_name} drew {step['tile']}")
+                    print(f"Melds: {p_obj.melds}")
 
             elif evt == 'discard':
                 print(f"{p_name} discarded {step['tile']}")
                 
             elif evt == 'meld':
-                # "P1 calls pon"
-                # GameEngine: "P1 claims Pon!" or "P1 Chi!"
-                # We can map action
                 action = step.get('action')
                 if action == 'chi': 
                     print(f"{p_name} Chi!")
@@ -194,16 +197,27 @@ def play_cli():
             if pid is not None:
                 p_obj = engine.state.players[pid]
             
-            if pid == 0:
+            # Check if current required player is Human
+            is_human = False
+            if pid is not None:
+                 is_human = (sim_players[pid] is None)
+            
+            if is_human:
                 # HUMAN
                 if act == 'discard':
-                    # get_user_discard prints prompt
                     d_idx = get_user_discard(p_obj)
                     step = engine.action_discard(pid, d_idx)
                 elif act == 'response':
-                     # Handled below in common response block
                      pass
-                     
+
+            elif pid is not None and act == 'discard':
+                # BOT Discard
+                sim_p = sim_players[pid]
+                sim_p.hand = p_obj.hand
+                sim_p.melds = p_obj.melds
+                d_idx = sim_p.decide_discard()
+                step = engine.action_discard(pid, d_idx)
+                time.sleep(0.1)
             
             if act == 'response':
                 candidates = step['candidates']
@@ -213,10 +227,9 @@ def play_cli():
                 for c_pid in candidates:
                     opts = pending[c_pid]
                     
-                    if c_pid == 0:
+                    if sim_players[c_pid] is None:
                         # Human
-                        # "P1, you can: pon, chi on 8m"
-                        action, extra = get_user_response(engine.state.players[0], opts, engine.last_discard)
+                        action, extra = get_user_response(engine.state.players[c_pid], opts, engine.last_discard)
                         res = engine.action_response(c_pid, action, extra)
                     else:
                         # Bot
@@ -230,7 +243,6 @@ def play_cli():
                         res = engine.action_response(c_pid, action, None)
                         
                         if action != 'skip':
-                             # Simulate bot delay/thought if it did something?
                              pass
                         
                     if res.get('status') != 'waiting_others':
@@ -241,16 +253,6 @@ def play_cli():
                     step = new_step
                 else:
                     pass
-
-            elif pid != 0 and act == 'discard':
-                # Bot Discard
-                sim_p = sim_players[pid]
-                sim_p.hand = p_obj.hand
-                sim_p.melds = p_obj.melds
-                d_idx = sim_p.decide_discard()
-                step = engine.action_discard(pid, d_idx)
-                # print(f"{sim_players[pid].name} thinks...") # Removed to match GameEngine clean output
-                time.sleep(0.1) # Small delay
 
         elif stype == "error":
             print(f"Error: {step['message']}")
