@@ -69,6 +69,7 @@ def serialize_state(e: StepGameEngine) -> GameStateModel:
         dead_wall_count=len(e.state.dead_wall),
         phase=e.phase,
         last_discard=str(e.last_discard) if e.last_discard else None,
+        last_discard_player_idx=e.last_discard_idx,
         valid_actions=list(e.pending_responses.get(0, [])) + (['skip'] if 0 in e.pending_responses else []) if e.phase == "WAIT_RESPONSE" else []
     )
 

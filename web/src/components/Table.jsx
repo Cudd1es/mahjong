@@ -87,15 +87,29 @@ const Table = () => {
     const left = gameState.players[3];
 
     // Helper to render river
-    const renderRiver = (player) => (
-        <div className="flex flex-wrap w-64 md:w-80 gap-1 content-start">
-            {player.discards.map((t, i) => (
-                <div key={i} className="scale-75">
-                    <Tile tile={t} />
-                </div>
-            ))}
-        </div>
-    );
+    const renderRiver = (player, playerIdx) => {
+        const isDiscarder = gameState.last_discard_player_idx === playerIdx;
+        return (
+            <div className="flex flex-wrap w-64 md:w-80 gap-1 content-start justify-center bg-black bg-opacity-10 p-2 rounded-lg">
+                {player.discards.map((t, i) => {
+                    const isLast = isDiscarder && i === player.discards.length - 1;
+                    return (
+                        <div key={i} className={`relative transition-all duration-300 ${isLast ? 'scale-110 z-10' : 'scale-75'}`}>
+                            <Tile tile={t} />
+                            {isLast && (
+                                <div className="absolute inset-0 border-4 border-yellow-400 rounded animate-pulse shadow-[0_0_15px_rgba(255,215,0,0.8)] pointer-events-none"></div>
+                            )}
+                            {isLast && (
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-yellow-300 font-bold text-xs bg-black bg-opacity-70 px-1 rounded">
+                                    Current
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     const renderMelds = (player) => {
         if (!player.melds || player.melds.length === 0) return null;
@@ -132,36 +146,36 @@ const Table = () => {
     return (
         <div className="relative w-full h-screen bg-green-800 flex flex-col justify-between overflow-hidden">
             {/* Top Player (Opponent) */}
-            <div className="absolute top-4 w-full flex flex-col items-center rotate-180 opacity-90">
-                <div className="flex gap-4 items-center mb-2">
+            <div className="absolute top-16 w-full flex flex-col items-center rotate-180 opacity-90 z-0">
+                {renderRiver(top, 2)}
+                <div className="flex gap-4 items-center mt-2">
                     <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
                         {top.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
                     </div>
                     {renderMelds(top)}
                 </div>
-                {renderRiver(top)}
             </div>
 
             {/* Left Player */}
-            <div className="absolute left-16 top-1/2 -translate-y-1/2 flex flex-col items-center rotate-90 opacity-90 origin-center">
-                <div className="flex gap-4 items-center mb-2">
+            <div className="absolute left-24 top-1/2 -translate-y-1/2 flex flex-col items-center rotate-90 opacity-90 origin-center z-0">
+                {renderRiver(left, 3)}
+                <div className="flex gap-4 items-center mt-2">
                     <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
                         {left.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
                     </div>
                     {renderMelds(left)}
                 </div>
-                {renderRiver(left)}
             </div>
 
             {/* Right Player */}
-            <div className="absolute right-16 top-1/2 -translate-y-1/2 flex flex-col items-center -rotate-90 opacity-90 origin-center">
-                <div className="flex gap-4 items-center mb-2">
+            <div className="absolute right-24 top-1/2 -translate-y-1/2 flex flex-col items-center -rotate-90 opacity-90 origin-center z-0">
+                {renderRiver(right, 1)}
+                <div className="flex gap-4 items-center mt-2">
                     <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
                         {right.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
                     </div>
                     {renderMelds(right)}
                 </div>
-                {renderRiver(right)}
             </div>
 
             {/* Center Area (Info) */}
@@ -176,34 +190,35 @@ const Table = () => {
                 )}
             </div>
 
-            {/* Action Buttons Overlay */}
+            {/* Action Buttons - Visible but Non-Blocking - Moved to Right Side */}
             {gameState.phase === 'WAIT_RESPONSE' && gameState.valid_actions && gameState.valid_actions.length > 0 && (
-                <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex gap-4 z-50">
-                    {gameState.valid_actions.includes('pon') && (
-                        <button onClick={() => handleAction('pon')} className="bg-blue-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-blue-500 font-bold border-2 border-white">Pon</button>
-                    )}
-                    {gameState.valid_actions.includes('chi') && (
-                        <button onClick={() => handleAction('chi')} className="bg-green-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-green-500 font-bold border-2 border-white">Chi</button>
+                <div className="absolute bottom-32 right-12 flex flex-col gap-3 z-50 animate-bounce-subtle">
+                    {gameState.valid_actions.includes('ron') && (
+                        <button onClick={() => handleAction('ron')} className="bg-red-600 text-white w-20 h-20 rounded-full shadow-lg text-2xl font-black border-4 border-white animate-pulse hover:scale-110 transition-transform">RON</button>
                     )}
                     {gameState.valid_actions.includes('kan') && (
-                        <button onClick={() => handleAction('kan')} className="bg-purple-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-purple-500 font-bold border-2 border-white">Kan</button>
+                        <button onClick={() => handleAction('kan')} className="bg-purple-600 text-white w-16 h-16 rounded-full shadow-lg text-xl font-bold border-2 border-white hover:scale-110 transition-transform">Kan</button>
                     )}
-                    {gameState.valid_actions.includes('ron') && (
-                        <button onClick={() => handleAction('ron')} className="bg-red-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-red-500 font-bold border-2 border-white animate-pulse">RON!</button>
+                    {gameState.valid_actions.includes('pon') && (
+                        <button onClick={() => handleAction('pon')} className="bg-blue-600 text-white w-16 h-16 rounded-full shadow-lg text-xl font-bold border-2 border-white hover:scale-110 transition-transform">Pon</button>
                     )}
-                    {/* Always show Skip if there are actions, effectively 'valid_actions' includes it from backend now or we just show it */}
-                    <button onClick={() => handleAction('skip')} className="bg-gray-500 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-gray-400 font-bold border-2 border-white">Skip</button>
+                    {gameState.valid_actions.includes('chi') && (
+                        <button onClick={() => handleAction('chi')} className="bg-green-600 text-white w-16 h-16 rounded-full shadow-lg text-xl font-bold border-2 border-white hover:scale-110 transition-transform">Chi</button>
+                    )}
+                    <button onClick={() => handleAction('skip')} className="bg-gray-500 text-white w-14 h-14 rounded-full shadow-lg text-md font-bold border-2 border-gray-300 hover:scale-110 transition-transform">Skip</button>
                 </div>
             )}
 
+
+
             {/* Bottom Player (Me) */}
-            <div className="absolute bottom-4 w-full flex flex-col items-center z-20">
-                {/* My Discards */}
-                <div className="mb-4">
-                    {renderRiver(me)}
+            <div className="absolute bottom-4 w-full flex flex-col items-center z-10">
+                {/* My Discards - Closer to center (Top of hand area) */}
+                <div className="mb-8">
+                    {renderRiver(me, 0)}
                 </div>
 
-                <div className="relative flex justify-center items-end gap-8">
+                <div className="relative flex justify-center items-end gap-8 bg-black bg-opacity-20 p-4 rounded-t-xl w-full max-w-5xl">
                     <Hand
                         tiles={me.hand}
                         isTurn={gameState.current_player_idx === 0 && gameState.phase === 'WAIT_DISCARD'}
@@ -216,7 +231,7 @@ const Table = () => {
                     {me.name} ({me.wind}) · Score: {me.score}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

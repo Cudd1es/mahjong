@@ -26,6 +26,7 @@ class GameStateModel(BaseModel):
     dead_wall_count: int
     phase: str # DRAW, WAIT_DISCARD, WAIT_RESPONSE, GAME_OVER
     last_discard: Optional[str]
+    last_discard_player_idx: Optional[int] = None # Who discarded the tile
     valid_actions: Optional[List[str]] = None # Actions available for the polling player (usually P0)
     
 class ActionRequest(BaseModel):
