@@ -140,7 +140,7 @@ class StepGameEngine:
                 print("[Engine] All pending players auto-responded. Resolving immediately.")
                 return self._resolve_responses()
                 
-            return {"type": "event", "event": "discard", "tile": str(tile), "wait_response": True}
+            return {"type": "event", "event": "discard", "player_idx": player_idx, "tile": str(tile), "wait_response": True}
         else:
             # No responses, next turn
             self.state.current_player_idx = (player_idx + 1) % 4
