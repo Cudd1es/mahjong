@@ -5,6 +5,7 @@ from src.core.melds import can_pon, can_chi, can_kan, can_kakan, can_ankan
 from src.core.hand_checker import is_win_hand, sort_hand, normalize_red
 from src.core.game_utils import colored, handle_win, remove_tile_from_hand
 from src.core.yaku import check_yaku
+from src.core.shanten import ShantenCalculator
 import sys
 import os
 import random
@@ -50,6 +51,22 @@ class SimulationPlayer(AIPlayer):
         return random.randint(1, len(chi_options))
 
 class SimulationGameEngine(GameEngine):
+    def check_furiten(self, player):
+        """
+        Check if player is in Furiten.
+        """
+        
+        calc = ShantenCalculator(player.hand)
+        waiting = calc.waiting_tiles(len(player.melds))
+        
+        waits_norm = set([str(normalize_red(t)) for t in waiting])
+        discards_norm = set([str(normalize_red(t)) for t in player.discards])
+        
+        intersection = waits_norm.intersection(discards_norm)
+        if intersection:
+            return True, waiting
+        return False, waiting
+
     def process_responses(self, discarder_idx, discarded_tile):
         """
         Overridden to allow AI response handling without Input.
@@ -72,7 +89,14 @@ class SimulationGameEngine(GameEngine):
                 yakus = check_yaku(p.hand, discarded_tile, p, is_tsumo=False)
                 valid_yakus = [y for y, h in yakus if y != 'dora']
                 if valid_yakus:
-                    options.append('ron')
+                    # Check Furiten
+                    is_furiten, waits = self.check_furiten(p)
+                    if is_furiten:
+                        # Log or Debug print?
+                        # print(f"Bot {p.name} Furiten. Cannot Ron.")
+                        pass
+                    else:
+                        options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')
             if can_pon(p.hand, discarded_tile) and not p.is_riichi: options.append('pon')

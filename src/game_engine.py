@@ -3,6 +3,7 @@ from src.core.hand_checker import is_win_hand, discard_to_wait, normalize_red, s
 from src.core.melds import can_chi, can_pon, can_kan, can_ankan, can_kakan
 from src.core.game_utils import handle_win, ask_win, ask_riichi, remove_tile_from_hand, colored
 from src.core.yaku import check_yaku
+from src.core.shanten import ShantenCalculator
 
 class GameEngine:
     def __init__(self):
@@ -123,6 +124,31 @@ class GameEngine:
             self.state.round_count += 1
             
         print("\nNo more tiles in live wall. The game ends in draw")
+        
+    def check_furiten(self, player):
+        """
+        Check if player is in Furiten.
+        Furiten: waiting list contains one of the tiles discarded by the player.
+        """
+        
+        calc = ShantenCalculator(player.hand)
+        # Pass meld_count
+        waiting = calc.waiting_tiles(len(player.melds))
+        
+        # Normalize waits and discards for comparison
+        waits_norm = set([str(normalize_red(t)) for t in waiting])
+        discards_norm = set([str(normalize_red(t)) for t in player.discards])
+        
+        # Check intersection
+        # If any waiting tile is in discard -> Furiten
+        intersection = waits_norm.intersection(discards_norm)
+        if intersection:
+            return True, waiting
+        return False, waiting
+
+    def check_player_win(self, p, win_tile, is_ron=False, loser=None):
+        # ... logic ...
+        pass # Placeholder
         
     def check_self_actions(self, player):
         """
@@ -258,7 +284,12 @@ class GameEngine:
                 yakus = check_yaku(p.hand, discarded_tile, p, is_tsumo=False)
                 valid_yakus = [y for y, h in yakus if y != 'dora']
                 if valid_yakus:
-                     options.append('ron')
+                     # Check Furiten
+                     is_furiten, waits = self.check_furiten(p)
+                     if is_furiten:
+                         print(f"  [Furiten] {p.name} cannot Ron on {discarded_tile}. Waiting: {waits}, Discards: {[str(d) for d in p.discards]}")
+                     else:
+                         options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')
             if can_pon(p.hand, discarded_tile) and not p.is_riichi: options.append('pon')
