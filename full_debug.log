@@ -1,9 +1,0 @@
-Starting Backend (FastAPI)...
-Starting Frontend (Vite)...
-Services started!
-Backend PID: 5929 (Logs: backend.log)
-Frontend PID: 5930 (Logs: frontend.log)
-
-Open http://localhost:5173 to play!
-
-Press CTRL+C to stop servers.
