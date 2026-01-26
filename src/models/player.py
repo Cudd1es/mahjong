@@ -1,4 +1,5 @@
 from src.models.wall import sort_hand
+from src.core.shanten import ShantenCalculator
 import random
 
 
@@ -53,8 +54,6 @@ class AIPlayer(Player):
         if self.is_riichi:
             return len(self.hand) - 1
 
-        from src.core.shanten import ShantenCalculator
-        
         best_discard_idx = -1
         min_shanten = 99
         

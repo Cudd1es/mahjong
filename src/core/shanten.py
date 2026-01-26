@@ -131,7 +131,7 @@ class ShantenCalculator:
         dfs(hand, meld_count, 0)
         return min_shanten[0]
 
-    def waiting_tiles(self):
+    def waiting_tiles(self, meld_count=0):
         from src.models.wall import create_wall
         all_types = set(create_wall())
         waits = []
@@ -140,7 +140,8 @@ class ShantenCalculator:
                 continue
             test_hand = self.hand + [t]
             calc = ShantenCalculator(test_hand)
-            min_shanten, _, _ = calc.calculate()
+            # calculate returns -1 for win
+            min_shanten, _, _ = calc.calculate(meld_count)
             if min_shanten == -1:
                 waits.append(t)
         return waits
