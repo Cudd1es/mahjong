@@ -64,9 +64,9 @@ class StepGameEngine:
                 # Tsumo!
                 # If AI, take it.
                 if not player.name.startswith("Player"): # Heuristic, or use is_human flag
-                     handle_win(player, tile, 'tsumo')
+                     res = handle_win(player, tile, 'tsumo')
                      self.phase = "GAME_OVER"
-                     self.turn_result = {"type": "tsumo", "winner": self.state.current_player_idx, "tile": str(tile)}
+                     self.turn_result = {"type": "tsumo", "winner": self.state.current_player_idx, "tile": str(tile), "result": res}
                      return self.next_step()
                 # If Human, we should really offer Tsumo button. 
                 # For MVP, let's keep it simple: Human Tsumo is a 'response' or special event?
@@ -133,6 +133,7 @@ class StepGameEngine:
             return self.next_step()
 
     def _check_responses(self, discarder_idx, tile):
+        self.received_responses = {} # Ensure fresh buffer for new discard
         responses = {} # player_idx -> [allowed_action_strings]
         for i in range(1, 4):
             idx = (discarder_idx + i) % 4
@@ -171,7 +172,6 @@ class StepGameEngine:
                     action = 'skip'
                     if 'ron' in allowed: action = 'ron'
                     # Buffer the response
-                    if not hasattr(self, 'received_responses'): self.received_responses = {}
                     self.received_responses[idx] = {"action": action, "extra": None}
                     print(f"[Engine] AI Player {idx} auto-responded: {action} (allowed: {allowed})")
                 
@@ -214,9 +214,9 @@ class StepGameEngine:
             winner_idx = ronners[0]
             
             # Execute Ron
-            handle_win(self.state.players[winner_idx], self.last_discard, 'ron')
+            res = handle_win(self.state.players[winner_idx], self.last_discard, 'ron')
             self.phase = "GAME_OVER"
-            self.turn_result = {"type": "ron", "winner": winner_idx, "tile": str(self.last_discard)}
+            self.turn_result = {"type": "ron", "winner": winner_idx, "loser": self.last_discard_idx, "tile": str(self.last_discard), "result": res}
             return self.next_step()
             
         # 2. Check Kan/Pon (Excluding 'skip')

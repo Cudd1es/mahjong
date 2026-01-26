@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 simulation_log.txt
+step_simulation_log.txt
