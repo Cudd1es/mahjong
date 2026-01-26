@@ -31,6 +31,21 @@ class StepGameEngine:
         self.phase = "DRAW" 
         return self.next_step()
 
+    def check_furiten(self, player):
+        """
+        Check if player is in Furiten.
+        """
+        calc = ShantenCalculator(player.hand)
+        waiting = calc.waiting_tiles(len(player.melds))
+        
+        waits_norm = set([str(normalize_red(t)) for t in waiting])
+        discards_norm = set([str(normalize_red(t)) for t in player.discards])
+        
+        intersection = waits_norm.intersection(discards_norm)
+        if intersection:
+            return True, waiting
+        return False, waiting
+
     def next_step(self):
         """
         Execute next logical step based on phase.
@@ -150,7 +165,11 @@ class StepGameEngine:
                 yakus = check_yaku(p.hand, tile, p, is_tsumo=False)
                 valid_yakus = [y for y, h in yakus if y != 'dora']
                 if valid_yakus:
-                     allowed.append('ron')
+                    # Check Furiten
+                    is_furiten, waits = self.check_furiten(p)
+                    if not is_furiten:
+                         allowed.append('ron')
+                    # else: print(f"DEBUG: {p.name} in Furiten, cannot Ron on {tile}")
             
             if can_pon(p.hand, tile) and not p.is_riichi: allowed.append('pon')
             if can_kan(p.hand, tile) and not p.is_riichi: allowed.append('kan') # Daiminkan
@@ -168,12 +187,13 @@ class StepGameEngine:
                 # If Bot, we must decide NOW or StepEngine will hang.
                 # Heuristic: AI always skips for now (MVP). 
                 # Real AI: Check 'ron' always, 'pon'/'chi' sometimes.
-                if idx != 0: # Assume 0 is human
-                    action = 'skip'
-                    if 'ron' in allowed: action = 'ron'
-                    # Buffer the response
-                    self.received_responses[idx] = {"action": action, "extra": None}
-                    print(f"[Engine] AI Player {idx} auto-responded: {action} (allowed: {allowed})")
+                # if idx != 0: # Assume 0 is human
+                #     action = 'skip'
+                #     if 'ron' in allowed: action = 'ron'
+                #     # Buffer the response
+                #     self.received_responses[idx] = {"action": action, "extra": None}
+                #     print(f"[Engine] AI Player {idx} auto-responded: {action} (allowed: {allowed})")
+                pass
                 
         if responses:
              print(f"[Engine] Pending Responses: {responses}")
