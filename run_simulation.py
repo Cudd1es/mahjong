@@ -2,10 +2,11 @@ from src.game_engine import GameEngine
 from src.models.player import AIPlayer, Player
 from src.models.tiles import Tile
 from src.core.melds import can_pon, can_chi, can_kan, can_kakan, can_ankan
-from src.core.hand_checker import is_win_hand, sort_hand, normalize_red
+from src.core.hand_checker import is_win_hand, sort_hand, normalize_red, try_split_standard_hand
 from src.core.game_utils import colored, handle_win, remove_tile_from_hand
 from src.core.yaku import check_yaku
 from src.core.shanten import ShantenCalculator
+from src.core.scoring import FuCalculator, ScoreTable
 import sys
 import os
 import random
@@ -96,6 +97,22 @@ class SimulationGameEngine(GameEngine):
                         # print(f"Bot {p.name} Furiten. Cannot Ron.")
                         pass
                     else:
+                        # Score Calc
+                        han = sum([h for y, h in yakus])
+                        _, head, pungs, chows = try_split_standard_hand(p.hand)
+                        fu_calc = FuCalculator()
+                        fu = fu_calc.calculate_fu(p.hand, p.melds, discarded_tile, 'ron', p, pungs, chows, head)
+                        is_dealer = (p.wind == 'E')
+                        points = ScoreTable.calculate_points(han, fu, is_dealer, is_tsumo=False)
+                        
+                        # Store points in options? No, options just strings.
+                        # We need to pass points out.
+                        # HACK: Attach points to options or re-calculate later?
+                        # Better: Determine winner here.
+                        # Since we only append 'ron' to options, we select later.
+                        # But wait, decide_response returns 'ron'.
+                        # Then we process 'ron'.
+                        # We should calculate points in the 'if choice_str == ron' block below!
                         options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')
@@ -116,8 +133,21 @@ class SimulationGameEngine(GameEngine):
                 choice_str = 'n'
                 
             if choice_str == 'ron':
+                # Re-calculate score for the winner
+                # We know is_win_hand is true and Yakus exist (checked above)
+                yakus = check_yaku(p.hand, discarded_tile, p, is_tsumo=False)
+                valid_yakus = [y for y, h in yakus if y != 'dora']
+                
+                han = sum([h for y, h in yakus]) # Including Dora for points
+                
+                _, head, pungs, chows = try_split_standard_hand(p.hand)
+                fu_calc = FuCalculator()
+                fu = fu_calc.calculate_fu(p.hand, p.melds, discarded_tile, 'ron', p, pungs, chows, head)
+                is_dealer = (p.wind == 'E')
+                points = ScoreTable.calculate_points(han, fu, is_dealer, is_tsumo=False)
+                
                 handle_win(p, discarded_tile, 'ron')
-                return 'ron', idx, None
+                return 'ron', idx, points
                 
             elif choice_str == 'kan':
                 # Execute Kan (Daiminkan)
@@ -198,8 +228,16 @@ class SimulationGameEngine(GameEngine):
             yakus = check_yaku(hand_13, tsumo_tile, player, is_tsumo=True)
             valid_yakus = [y for y, h in yakus if y != 'dora']
             if valid_yakus:
+                # Score Calc
+                han = sum([h for y, h in yakus])
+                _, head, pungs, chows = try_split_standard_hand(player.hand)
+                fu_calc = FuCalculator()
+                fu = fu_calc.calculate_fu(player.hand, player.melds, tsumo_tile, 'tsumo', player, pungs, chows, head)
+                is_dealer = (player.wind == 'E')
+                points = ScoreTable.calculate_points(han, fu, is_dealer, is_tsumo=True)
+                
                 handle_win(player, player.hand[-1], 'tsumo')
-                return "tsumo", None
+                return "tsumo", points
             # Else ignored (Chicken Hand)
             
         # Kan Check
@@ -244,16 +282,17 @@ class SimulationGameEngine(GameEngine):
         return "None", None
 
 
-def log_game_result(game_idx, ended_by, state, winner_idx=None, winning_tile=None, loser_idx=None):
+def log_game_result(game_idx, ended_by, state, winner_idx=None, winning_tile=None, loser_idx=None, points=None):
     with open("simulation_log.txt", "a") as f:
         f.write(f"=== Game {game_idx+1} Result: {ended_by} ===\n")
         if winner_idx is not None:
             w_name = state.players[winner_idx].name
+            score_str = f" Points: {points}" if points else ""
             if ended_by == 'ron':
                 loser_name = state.players[loser_idx].name if loser_idx is not None else "Unknown"
-                f.write(f"Winner: {w_name} (Ron on {winning_tile} from {loser_name})\n")
+                f.write(f"Winner: {w_name} (Ron on {winning_tile} from {loser_name}){score_str}\n")
             else:
-                f.write(f"Winner: {w_name} (Tsumo {winning_tile})\n")
+                f.write(f"Winner: {w_name} (Tsumo {winning_tile}){score_str}\n")
         
         for idx, p in enumerate(state.players):
             hand_str = " ".join([str(t) for t in p.hand])
@@ -305,6 +344,7 @@ def run_simulation(num_games=100):
                 winner_idx = None
                 winning_tile = None
                 loser_idx = None
+                points = None
                 
                 while len(state.live_wall) > 0:
                     current_player = state.get_current_player()
@@ -324,6 +364,7 @@ def run_simulation(num_games=100):
                         game_ended_by = 'tsumo'
                         winner_idx = state.current_player_idx
                         winning_tile = current_player.hand[-1]
+                        points = data # Points returned in data
                         break
                     
                     pending_riichi = False
@@ -367,11 +408,13 @@ def run_simulation(num_games=100):
                              winner_idx = responder_idx
                              winning_tile = active_discard
                              loser_idx = active_idx
+                             points = new_discard # Capture points
                              break # Game End
                          elif action == 'tsumo':
                              stats['tsumo'] += 1
                              game_ended_by = 'tsumo'
                              winner_idx = responder_idx
+                             points = new_discard # Capture points
                              break
                          elif action == 'kan':
                              stats['kan'] += 1
@@ -416,7 +459,8 @@ def run_simulation(num_games=100):
                 if game_ended_by == 'draw':
                     stats['draw'] += 1
                     
-                log_game_result(game_idx, game_ended_by, state, winner_idx, winning_tile, loser_idx)
+                # Single point of logging
+                log_game_result(game_idx, game_ended_by, state, winner_idx, winning_tile, loser_idx, points)
                     
         except Exception as e:
             msg = f"Game {game_idx} CRASH: {e}"
