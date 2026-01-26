@@ -68,7 +68,8 @@ def serialize_state(e: StepGameEngine) -> GameStateModel:
         live_wall_count=len(e.state.live_wall),
         dead_wall_count=len(e.state.dead_wall),
         phase=e.phase,
-        last_discard=str(e.last_discard) if e.last_discard else None
+        last_discard=str(e.last_discard) if e.last_discard else None,
+        valid_actions=list(e.pending_responses.get(0, [])) + (['skip'] if 0 in e.pending_responses else []) if e.phase == "WAIT_RESPONSE" else []
     )
 
 def process_ai_turns(current_step):

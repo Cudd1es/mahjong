@@ -97,6 +97,23 @@ const Table = () => {
         </div>
     );
 
+    const renderMelds = (player) => {
+        if (!player.melds || player.melds.length === 0) return null;
+        return (
+            <div className="flex gap-2">
+                {player.melds.map((meld, i) => (
+                    <div key={i} className="flex gap-0.5 bg-black bg-opacity-20 p-1 rounded">
+                        {meld.map((t, j) => (
+                            <div key={j} className="scale-75">
+                                <Tile tile={t} />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     // Helper for buttons
     const handleAction = async (type) => {
         try {
@@ -116,24 +133,33 @@ const Table = () => {
         <div className="relative w-full h-screen bg-green-800 flex flex-col justify-between overflow-hidden">
             {/* Top Player (Opponent) */}
             <div className="absolute top-4 w-full flex flex-col items-center rotate-180 opacity-90">
-                <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded mb-2">
-                    {top.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+                <div className="flex gap-4 items-center mb-2">
+                    <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
+                        {top.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+                    </div>
+                    {renderMelds(top)}
                 </div>
                 {renderRiver(top)}
             </div>
 
             {/* Left Player */}
             <div className="absolute left-16 top-1/2 -translate-y-1/2 flex flex-col items-center rotate-90 opacity-90 origin-center">
-                <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded mb-2">
-                    {left.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+                <div className="flex gap-4 items-center mb-2">
+                    <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
+                        {left.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+                    </div>
+                    {renderMelds(left)}
                 </div>
                 {renderRiver(left)}
             </div>
 
             {/* Right Player */}
             <div className="absolute right-16 top-1/2 -translate-y-1/2 flex flex-col items-center -rotate-90 opacity-90 origin-center">
-                <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded mb-2">
-                    {right.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+                <div className="flex gap-4 items-center mb-2">
+                    <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
+                        {right.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+                    </div>
+                    {renderMelds(right)}
                 </div>
                 {renderRiver(right)}
             </div>
@@ -151,12 +177,21 @@ const Table = () => {
             </div>
 
             {/* Action Buttons Overlay */}
-            {gameState.phase === 'WAIT_RESPONSE' && (
+            {gameState.phase === 'WAIT_RESPONSE' && gameState.valid_actions && gameState.valid_actions.length > 0 && (
                 <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex gap-4 z-50">
-                    <button onClick={() => handleAction('pon')} className="bg-blue-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-blue-500 font-bold border-2 border-white">Pon</button>
-                    <button onClick={() => handleAction('chi')} className="bg-green-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-green-500 font-bold border-2 border-white">Chi</button>
-                    <button onClick={() => handleAction('kan')} className="bg-purple-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-purple-500 font-bold border-2 border-white">Kan</button>
-                    <button onClick={() => handleAction('ron')} className="bg-red-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-red-500 font-bold border-2 border-white animate-pulse">RON!</button>
+                    {gameState.valid_actions.includes('pon') && (
+                        <button onClick={() => handleAction('pon')} className="bg-blue-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-blue-500 font-bold border-2 border-white">Pon</button>
+                    )}
+                    {gameState.valid_actions.includes('chi') && (
+                        <button onClick={() => handleAction('chi')} className="bg-green-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-green-500 font-bold border-2 border-white">Chi</button>
+                    )}
+                    {gameState.valid_actions.includes('kan') && (
+                        <button onClick={() => handleAction('kan')} className="bg-purple-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-purple-500 font-bold border-2 border-white">Kan</button>
+                    )}
+                    {gameState.valid_actions.includes('ron') && (
+                        <button onClick={() => handleAction('ron')} className="bg-red-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-red-500 font-bold border-2 border-white animate-pulse">RON!</button>
+                    )}
+                    {/* Always show Skip if there are actions, effectively 'valid_actions' includes it from backend now or we just show it */}
                     <button onClick={() => handleAction('skip')} className="bg-gray-500 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-gray-400 font-bold border-2 border-white">Skip</button>
                 </div>
             )}
@@ -168,13 +203,14 @@ const Table = () => {
                     {renderRiver(me)}
                 </div>
 
-                <div className="relative">
+                <div className="relative flex justify-center items-end gap-8">
                     <Hand
                         tiles={me.hand}
                         isTurn={gameState.current_player_idx === 0 && gameState.phase === 'WAIT_DISCARD'}
                         canDiscard={gameState.current_player_idx === 0 && gameState.phase === 'WAIT_DISCARD'}
                         onDiscard={handleDiscard}
                     />
+                    {renderMelds(me)}
                 </div>
                 <div className="text-white mt-2 font-bold bg-black bg-opacity-50 px-4 py-1 rounded-full">
                     {me.name} ({me.wind}) · Score: {me.score}

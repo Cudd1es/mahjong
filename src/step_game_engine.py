@@ -194,6 +194,11 @@ class StepGameEngine:
         if self.phase != "WAIT_RESPONSE": return {"error": "Not response phase"}
         if player_idx not in self.pending_responses: return {"error": "Not eligible to respond"}
         
+        # Strict validation
+        allowed_actions = self.pending_responses[player_idx]
+        if action != 'skip' and action not in allowed_actions:
+             return {"error": f"Action {action} not allowed. Valid: {allowed_actions}"}
+        
         # Store response
         if not hasattr(self, 'received_responses'): self.received_responses = {}
         self.received_responses[player_idx] = {"action": action, "extra": extra_data}

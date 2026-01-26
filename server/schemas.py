@@ -26,6 +26,7 @@ class GameStateModel(BaseModel):
     dead_wall_count: int
     phase: str # DRAW, WAIT_DISCARD, WAIT_RESPONSE, GAME_OVER
     last_discard: Optional[str]
+    valid_actions: Optional[List[str]] = None # Actions available for the polling player (usually P0)
     
 class ActionRequest(BaseModel):
     type: str # discard, ron, pon, kan, chi, skip
