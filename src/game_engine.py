@@ -1,9 +1,10 @@
 from src.game_state import GameState
-from src.core.hand_checker import is_win_hand, discard_to_wait, normalize_red, sort_hand
+from src.core.hand_checker import is_win_hand, discard_to_wait, normalize_red, sort_hand, try_split_standard_hand
 from src.core.melds import can_chi, can_pon, can_kan, can_ankan, can_kakan
 from src.core.game_utils import handle_win, ask_win, ask_riichi, remove_tile_from_hand, colored
 from src.core.yaku import check_yaku
 from src.core.shanten import ShantenCalculator
+from src.core.scoring import FuCalculator, ScoreTable
 
 class GameEngine:
     def __init__(self):
@@ -169,6 +170,23 @@ class GameEngine:
                 # Filter out Dora (not a valid Yaku for winning condition)
                 valid_yakus = [y for y, h in yakus if y != 'dora']
                 if valid_yakus:
+                    # Score Calculation
+                    han = sum([h for y, h in yakus])
+                    # Split for Fu
+                    _, head, pungs, chows = try_split_standard_hand(player.hand)
+                    # Use FuCalculator
+                    fu_calc = FuCalculator()
+                    fu = fu_calc.calculate_fu(player.hand, player.melds, tsumo_tile, 'tsumo', player, pungs, chows, head)
+                    
+                    # Points
+                    is_dealer = (player.wind == 'E') # Simplification: Assume 'E' is dealer if assigned
+                    # Actually dealer is index 0 initially, but winds rotate.
+                    # We need self.state.dealer_idx check?
+                    # For now assume wind 'E' is dealer.
+                    points = ScoreTable.calculate_points(han, fu, is_dealer, is_tsumo=True)
+                    
+                    print(f"[{player.name}] Tsumo! {valid_yakus} {han}Han {fu}Fu. Points: {points}")
+                    
                     return "tsumo", None
                 else:
                     return "None", None
@@ -289,6 +307,17 @@ class GameEngine:
                      if is_furiten:
                          print(f"  [Furiten] {p.name} cannot Ron on {discarded_tile}. Waiting: {waits}, Discards: {[str(d) for d in p.discards]}")
                      else:
+                         # Score Calculation
+                         han = sum([h for y, h in yakus])
+                         _, head, pungs, chows = try_split_standard_hand(p.hand)
+                         fu_calc = FuCalculator()
+                         # Note: Ron tile is discarded_tile, passed as win_tile
+                         fu = fu_calc.calculate_fu(p.hand, p.melds, discarded_tile, 'ron', p, pungs, chows, head)
+                         
+                         is_dealer = (p.wind == 'E')
+                         points = ScoreTable.calculate_points(han, fu, is_dealer, is_tsumo=False)
+                         
+                         print(f"[{p.name}] Ron! {valid_yakus} {han}Han {fu}Fu. Points: {points}")
                          options.append('ron')
             
             if can_kan(p.hand, discarded_tile): options.append('kan')
