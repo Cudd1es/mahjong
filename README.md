@@ -14,6 +14,8 @@ This project aims to provide a playable console game, rich yaku detection, AI an
 - **Riichi logic**: restricts discards after declaring riichi; tracks riichi declaration and discards for ipatsu/yaku
 - **Tenpai (waiting hand) calculation and recommended discards**
 - **Role separation**: clear modules for wall, tiles, player, hand checker, melds, and yaku calculation
+- **StepGameEngine**: New state-machine based engine architecture for easier integration with UIs, web servers, and AI training.
+- **Furiten Check**: Implemented realistic Furiten (Sacred Discard) rules to prevent invalid Ron calls.
 - **Easily extensible**: plug in better AI, yaku, scoring, multiplayer, or GUI
 
 ---
@@ -23,13 +25,14 @@ This project aims to provide a playable console game, rich yaku detection, AI an
 
 ```
 mahjong/
-  ├── game_loop.py         # Main game logic and turn loop
-  ├── player.py            # Player, AIPlayer, HumanPlayer classes and discard logic
-  ├── tiles.py             # Tile class and tile operations
-  ├── wall.py              # Wall creation, shuffling, tile dealing, sorting
-  ├── hand_checker.py      # Hand evaluation: winning hand, tenpai, discard recommendations
-  ├── melds.py             # Chi, pon, kan detection and meld handling
-  ├── yaku.py              # Yaku detection (all major Riichi yaku supported)
+mahjong/
+  ├── play_step_cli.py     # Interactive CLI game using the new StepGameEngine
+  ├── run_step_simulation.py # Automated simulation script for validation
+  ├── src/
+  │   ├── step_game_engine.py  # New state-machine game engine
+  │   ├── game_engine.py       # Legacy game engine
+  │   ├── models/              # Player, Tile, Wall models
+  │   ├── core/                # Core logic (Yaku, Hand Checker, Scoring, Melds)
 ```
 
 ---
@@ -41,9 +44,25 @@ mahjong/
 
 ## Usage
 
+## Usage
+  
+### Interactive Play
+New Step-Based Engine (Recommended):
 ```bash
-python game_loop.py
+python play_step_cli.py
 ```
+
+Legacy Engine:
+```bash
+python run_cli.py
+```
+
+### Simulation / Verification
+Run automated games to verify engine logic and AI performance:
+```bash
+python run_step_simulation.py 20
+```
+
 ---
 
 ## Key Rules & Features

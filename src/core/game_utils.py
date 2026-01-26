@@ -107,4 +107,10 @@ def handle_win(player, win_tile, win_type, is_rinshan=False):
     
     score = ScoreTable.calculate_points(han, fu, player.wind == 'E', is_tsumo)
     print(f"Score: {score}")
-    return score
+    
+    return {
+        "score": score,
+        "han": han,
+        "fu": fu,
+        "yaku": yaku_names
+    }
