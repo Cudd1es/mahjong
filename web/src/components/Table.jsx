@@ -178,42 +178,54 @@ const Table = () => {
                 </div>
             </div>
 
-            {/* Center Area (Info) - Glassmorphism, Removed Wood Texture */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-40 bg-black bg-opacity-40 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 flex flex-col items-center justify-center text-white z-10">
-                <div className="text-xl font-bold text-yellow-100 shadow-black drop-shadow-md">Round {gameState.round_count}</div>
-                <div className="text-lg shadow-black drop-shadow-md">Turn: {gameState.players[gameState.current_player_idx].name}</div>
-                <div className="text-sm text-gray-200 shadow-black drop-shadow-md">Wall: {gameState.live_wall_count}</div>
-                <div className="mt-1 px-2 py-0.5 bg-black bg-opacity-40 rounded text-xs">{gameState.phase}</div>
+            {/* Center Area (Info) - Compass Style */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-contain bg-center bg-no-repeat flex flex-col items-center justify-center text-white z-10" style={{ backgroundImage: "url('/compass_dial.png')" }}>
+                <div className="text-3xl font-black text-yellow-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-[-10px]">
+                    {['E', 'S', 'W', 'N'][gameState.current_player_idx]}
+                </div>
+                <div className="text-xs font-bold text-yellow-200 mt-1 drop-shadow-md">Round {gameState.round_count}</div>
+                <div className="text-[10px] text-gray-300 drop-shadow-md">Wall: {gameState.live_wall_count}</div>
 
                 {gameState.phase === 'WAIT_DISCARD' && gameState.current_player_idx === 0 && (
-                    <div className="mt-2 text-yellow-300 animate-bounce font-bold">YOUR TURN</div>
+                    <div className="absolute -bottom-16 w-full text-center text-yellow-300 animate-bounce font-bold text-xl drop-shadow-lg">YOUR TURN</div>
                 )}
             </div>
 
-            {/* Action Buttons - Visible but Non-Blocking - Moved to Right Side */}
+            {/* Action Buttons - Crystal Orbs */}
             {((gameState.phase === 'WAIT_RESPONSE' && gameState.valid_actions && gameState.valid_actions.length > 0) || gameState.can_tsumo) && (
-                <div className="absolute bottom-32 right-12 flex flex-col gap-3 z-50 animate-bounce-subtle">
+                <div className="absolute bottom-32 right-12 flex flex-col gap-4 z-50 animate-bounce-subtle items-center">
                     {gameState.can_tsumo && (
-                        <button onClick={() => handleAction('tsumo')} className="bg-yellow-500 text-white w-24 h-24 rounded-full shadow-lg text-2xl font-black border-4 border-red-500 animate-winner hover:scale-110 transition-transform">TSUMO</button>
+                        <button onClick={() => handleAction('tsumo')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_tsumo.png" alt="Tsumo" className="w-28 h-28 drop-shadow-2xl animate-winner" />
+                        </button>
                     )}
                     {gameState.valid_actions && gameState.valid_actions.includes('ron') && (
-                        <button onClick={() => handleAction('ron')} className="bg-red-600 text-white w-20 h-20 rounded-full shadow-lg text-2xl font-black border-4 border-white animate-pulse hover:scale-110 transition-transform">RON</button>
+                        <button onClick={() => handleAction('ron')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_ron.png" alt="Ron" className="w-20 h-20 drop-shadow-xl animate-pulse" />
+                        </button>
                     )}
                     {gameState.valid_actions && gameState.valid_actions.includes('kan') && (
-                        <button onClick={() => handleAction('kan')} className="bg-purple-600 text-white w-16 h-16 rounded-full shadow-lg text-xl font-bold border-2 border-white hover:scale-110 transition-transform">Kan</button>
+                        <button onClick={() => handleAction('kan')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_kan.png" alt="Kan" className="w-20 h-20 drop-shadow-lg" />
+                        </button>
                     )}
                     {gameState.valid_actions && gameState.valid_actions.includes('pon') && (
-                        <button onClick={() => handleAction('pon')} className="bg-blue-600 text-white w-16 h-16 rounded-full shadow-lg text-xl font-bold border-2 border-white hover:scale-110 transition-transform">Pon</button>
+                        <button onClick={() => handleAction('pon')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_pon.png" alt="Pon" className="w-20 h-20 drop-shadow-lg" />
+                        </button>
                     )}
                     {gameState.valid_actions && gameState.valid_actions.includes('chi') && (
-                        <button onClick={() => handleAction('chi')} className="bg-green-600 text-white w-16 h-16 rounded-full shadow-lg text-xl font-bold border-2 border-white hover:scale-110 transition-transform">Chi</button>
+                        <button onClick={() => handleAction('chi')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_chi.png" alt="Chi" className="w-20 h-20 drop-shadow-lg" />
+                        </button>
                     )}
                     {!gameState.can_tsumo && (
-                        <button onClick={() => handleAction('skip')} className="bg-gray-500 text-white w-14 h-14 rounded-full shadow-lg text-md font-bold border-2 border-gray-300 hover:scale-110 transition-transform">Skip</button>
+                        <button onClick={() => handleAction('skip')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_skip.png" alt="Skip" className="w-16 h-16 drop-shadow-md opacity-80 hover:opacity-100" />
+                        </button>
                     )}
                 </div>
             )}
-
 
 
             {/* Bottom Player (Me) */}
@@ -232,8 +244,8 @@ const Table = () => {
                     />
                     {renderMelds(me)}
                 </div>
-                <div className="text-white mt-2 font-bold bg-black bg-opacity-40 backdrop-blur-sm px-4 py-1 rounded-full shadow-lg">
-                    {me.name} ({me.wind}) · Score: {me.score}
+                <div className="mt-2 px-6 py-2 bg-contain bg-center bg-no-repeat text-white font-bold text-shadow-md flex items-center justify-center w-56 h-10 text-sm" style={{ backgroundImage: "url('/score_plate.png')" }}>
+                    {me.name} ({me.wind}) · {me.score}
                 </div>
             </div>
         </div >
