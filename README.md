@@ -57,6 +57,12 @@ Legacy Engine:
 python run_cli.py
 ```
 
+### Web Interface
+This project now includes a modern, high-fidelity Web UI built with **React, TailwindCSS, and FastAPI**.
+- **Visuals**: Features a 3D Gold/Wood Compass, Crystal Orb action buttons (Ron, Pon, Tsumo), and high-quality ivory tile textures.
+- **Glassmorphism**: Clean, modern UI overlays.
+- **Interactive**: Real-time gameplay with visual feedback for discards, melds, and winning.
+
 ### Simulation / Verification
 Run automated games to verify engine logic and AI performance:
 ```bash
@@ -65,7 +71,52 @@ python run_step_simulation.py 20
 
 ---
 
-## Key Rules & Features
+## Project Structure
+
+```
+mahjong/
+├── play_step_cli.py       # Interactive CLI game
+├── run_step_simulation.py # Automated simulation script
+├── server/                # FastAPI Backend
+│   ├── main.py            # API Entry point
+│   └── schemas.py         # Pydantic models
+├── web/                   # React Frontend
+│   ├── src/               # React components (Table, Tile, Hand)
+│   └── public/            # Game assets (Compass, Crystals, Tiles)
+├── src/
+│   ├── step_game_engine.py  # New state-machine game engine
+│   ├── models/              # Player, Tile, Wall models
+│   └── core/                # Core logic (Yaku, Hand Checker, Scoring, Melds)
+```
+
+---
+
+## Requirements
+
+- Python 3.9+ 
+- Node.js (for Web UI)
+- Pillow (for asset processing)
+
+---
+
+## Usage
+  
+### Interactive Play (CLI)
+New Step-Based Engine (Recommended):
+```bash
+python play_step_cli.py
+```
+
+### Web Interface
+1. Start the Backend:
+```bash
+uvicorn server.main:app --reload
+```
+2. Start the Frontend:
+```bash
+cd web
+npm run dev
+```
 
 - **Red fives (Aka Dora)** are supported; red five and normal five are treated equivalently in hand operations and yaku calculation.
 - **Meld calls**: AI and humans can chi, pon, kan according to standard Riichi rules; riichi disables chi/pon/kan.
