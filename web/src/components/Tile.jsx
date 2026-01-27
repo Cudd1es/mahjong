@@ -16,13 +16,14 @@ const Tile = ({ tile, onClick, selected, isDora }) => {
             onClick={() => onClick && onClick(tile)}
             className={`
                 relative
-                flex items-center justify-center
+                flex items-center justify-center pb-2
                 w-10 h-14 md:w-12 md:h-16
-                bg-white border border-gray-300 rounded-md
+                bg-cover bg-center border border-gray-400 rounded-md
                 shadow-md select-none cursor-pointer
                 transition-transform hover:-translate-y-1
                 ${selected ? 'ring-2 ring-blue-500 -translate-y-2' : ''}
             `}
+            style={{ backgroundImage: "url('/tile_ivory.png')" }}
         >
             <span className={`text-4xl md:text-5xl leading-none ${isRed ? 'text-red-600' : 'text-black'}`}>
                 {unicode}
