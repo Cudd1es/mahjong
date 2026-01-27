@@ -87,22 +87,36 @@ const Table = () => {
     const left = gameState.players[3];
 
     // Helper to render river
-    const renderRiver = (player) => (
-        <div className="flex flex-wrap w-64 md:w-80 gap-1 content-start">
-            {player.discards.map((t, i) => (
-                <div key={i} className="scale-75">
-                    <Tile tile={t} />
-                </div>
-            ))}
-        </div>
-    );
+    const renderRiver = (player, playerIdx) => {
+        const isDiscarder = gameState.last_discard_player_idx === playerIdx;
+        return (
+            <div className="flex flex-wrap w-64 md:w-80 gap-1 content-start justify-center p-2">
+                {player.discards.map((t, i) => {
+                    const isLast = isDiscarder && i === player.discards.length - 1;
+                    return (
+                        <div key={i} className={`relative transition-all duration-300 ${isLast ? 'scale-110 z-10' : 'scale-75'}`}>
+                            <Tile tile={t} />
+                            {isLast && (
+                                <div className="absolute inset-0 border-4 border-yellow-400 rounded animate-pulse shadow-[0_0_15px_rgba(255,215,0,0.8)] pointer-events-none"></div>
+                            )}
+                            {isLast && (
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-yellow-300 font-bold text-xs bg-black bg-opacity-70 px-1 rounded">
+                                    Current
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     const renderMelds = (player) => {
         if (!player.melds || player.melds.length === 0) return null;
         return (
             <div className="flex gap-2">
                 {player.melds.map((meld, i) => (
-                    <div key={i} className="flex gap-0.5 bg-black bg-opacity-20 p-1 rounded">
+                    <div key={i} className="flex gap-0.5 p-1 rounded">
                         {meld.map((t, j) => (
                             <div key={j} className="scale-75">
                                 <Tile tile={t} />
@@ -130,80 +144,98 @@ const Table = () => {
     };
 
     return (
-        <div className="relative w-full h-screen bg-green-800 flex flex-col justify-between overflow-hidden">
+        <div className="relative w-full h-screen flex flex-col justify-between overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/table_felt.png')" }}>
             {/* Top Player (Opponent) */}
-            <div className="absolute top-4 w-full flex flex-col items-center rotate-180 opacity-90">
-                <div className="flex gap-4 items-center mb-2">
-                    <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
-                        {top.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+            <div className="absolute top-16 w-full flex flex-col items-center rotate-180 opacity-90 z-0">
+                {renderRiver(top, 2)}
+                <div className="flex gap-4 items-center mt-2">
+                    <div className="flex gap-1 p-2 rounded">
+                        {top.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-cover bg-center border border-white rounded" style={{ backgroundImage: "url('/tile_back.png')" }}></div>)}
                     </div>
                     {renderMelds(top)}
                 </div>
-                {renderRiver(top)}
             </div>
 
             {/* Left Player */}
-            <div className="absolute left-16 top-1/2 -translate-y-1/2 flex flex-col items-center rotate-90 opacity-90 origin-center">
-                <div className="flex gap-4 items-center mb-2">
-                    <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
-                        {left.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+            <div className="absolute left-24 top-1/2 -translate-y-1/2 flex flex-col items-center rotate-90 opacity-90 origin-center z-0">
+                {renderRiver(left, 3)}
+                <div className="flex gap-4 items-center mt-2">
+                    <div className="flex gap-1 p-2 rounded">
+                        {left.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-cover bg-center border border-white rounded" style={{ backgroundImage: "url('/tile_back.png')" }}></div>)}
                     </div>
                     {renderMelds(left)}
                 </div>
-                {renderRiver(left)}
             </div>
 
             {/* Right Player */}
-            <div className="absolute right-16 top-1/2 -translate-y-1/2 flex flex-col items-center -rotate-90 opacity-90 origin-center">
-                <div className="flex gap-4 items-center mb-2">
-                    <div className="flex gap-1 bg-black bg-opacity-30 p-2 rounded">
-                        {right.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-blue-900 border border-white rounded"></div>)}
+            <div className="absolute right-24 top-1/2 -translate-y-1/2 flex flex-col items-center -rotate-90 opacity-90 origin-center z-0">
+                {renderRiver(right, 1)}
+                <div className="flex gap-4 items-center mt-2">
+                    <div className="flex gap-1 p-2 rounded">
+                        {right.hand.map((_, i) => <div key={i} className="w-8 h-12 bg-cover bg-center border border-white rounded" style={{ backgroundImage: "url('/tile_back.png')" }}></div>)}
                     </div>
                     {renderMelds(right)}
                 </div>
-                {renderRiver(right)}
             </div>
 
-            {/* Center Area (Info) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-40 bg-green-900 bg-opacity-80 rounded-xl shadow-2xl border-2 border-yellow-600 flex flex-col items-center justify-center text-white z-10">
-                <div className="text-xl font-bold text-yellow-400">Round {gameState.round_count}</div>
-                <div className="text-lg">Turn: {gameState.players[gameState.current_player_idx].name}</div>
-                <div className="text-sm text-gray-300">Wall: {gameState.live_wall_count}</div>
-                <div className="mt-1 px-2 py-0.5 bg-black rounded text-xs">{gameState.phase}</div>
+            {/* Center Area (Info) - Compass Style */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-contain bg-center bg-no-repeat flex flex-col items-center justify-center text-white z-10" style={{ backgroundImage: "url('/compass_dial.png')" }}>
+                <div className="text-3xl font-black text-yellow-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-[-10px]">
+                    {['E', 'S', 'W', 'N'][gameState.current_player_idx]}
+                </div>
+                <div className="text-xs font-bold text-yellow-200 mt-1 drop-shadow-md">Round {gameState.round_count}</div>
+                <div className="text-[10px] text-gray-300 drop-shadow-md">Wall: {gameState.live_wall_count}</div>
 
                 {gameState.phase === 'WAIT_DISCARD' && gameState.current_player_idx === 0 && (
-                    <div className="mt-2 text-yellow-300 animate-bounce font-bold">YOUR TURN</div>
+                    <div className="absolute -bottom-16 w-full text-center text-yellow-300 animate-bounce font-bold text-xl drop-shadow-lg">YOUR TURN</div>
                 )}
             </div>
 
-            {/* Action Buttons Overlay */}
-            {gameState.phase === 'WAIT_RESPONSE' && gameState.valid_actions && gameState.valid_actions.length > 0 && (
-                <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex gap-4 z-50">
-                    {gameState.valid_actions.includes('pon') && (
-                        <button onClick={() => handleAction('pon')} className="bg-blue-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-blue-500 font-bold border-2 border-white">Pon</button>
+            {/* Action Buttons - Crystal Orbs */}
+            {((gameState.phase === 'WAIT_RESPONSE' && gameState.valid_actions && gameState.valid_actions.length > 0) || gameState.can_tsumo) && (
+                <div className="absolute bottom-32 right-12 flex flex-col gap-4 z-50 animate-bounce-subtle items-center">
+                    {gameState.can_tsumo && (
+                        <button onClick={() => handleAction('tsumo')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_tsumo.png" alt="Tsumo" className="w-28 h-28 drop-shadow-2xl animate-winner" />
+                        </button>
                     )}
-                    {gameState.valid_actions.includes('chi') && (
-                        <button onClick={() => handleAction('chi')} className="bg-green-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-green-500 font-bold border-2 border-white">Chi</button>
+                    {gameState.valid_actions && gameState.valid_actions.includes('ron') && (
+                        <button onClick={() => handleAction('ron')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_ron.png" alt="Ron" className="w-20 h-20 drop-shadow-xl animate-pulse" />
+                        </button>
                     )}
-                    {gameState.valid_actions.includes('kan') && (
-                        <button onClick={() => handleAction('kan')} className="bg-purple-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-purple-500 font-bold border-2 border-white">Kan</button>
+                    {gameState.valid_actions && gameState.valid_actions.includes('kan') && (
+                        <button onClick={() => handleAction('kan')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_kan.png" alt="Kan" className="w-20 h-20 drop-shadow-lg" />
+                        </button>
                     )}
-                    {gameState.valid_actions.includes('ron') && (
-                        <button onClick={() => handleAction('ron')} className="bg-red-600 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-red-500 font-bold border-2 border-white animate-pulse">RON!</button>
+                    {gameState.valid_actions && gameState.valid_actions.includes('pon') && (
+                        <button onClick={() => handleAction('pon')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_pon.png" alt="Pon" className="w-20 h-20 drop-shadow-lg" />
+                        </button>
                     )}
-                    {/* Always show Skip if there are actions, effectively 'valid_actions' includes it from backend now or we just show it */}
-                    <button onClick={() => handleAction('skip')} className="bg-gray-500 text-white px-6 py-3 rounded shadow-lg text-xl hover:bg-gray-400 font-bold border-2 border-white">Skip</button>
+                    {gameState.valid_actions && gameState.valid_actions.includes('chi') && (
+                        <button onClick={() => handleAction('chi')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_chi.png" alt="Chi" className="w-20 h-20 drop-shadow-lg" />
+                        </button>
+                    )}
+                    {!gameState.can_tsumo && (
+                        <button onClick={() => handleAction('skip')} className="hover:scale-110 transition-transform">
+                            <img src="/btn_skip.png" alt="Skip" className="w-16 h-16 drop-shadow-md opacity-80 hover:opacity-100" />
+                        </button>
+                    )}
                 </div>
             )}
 
+
             {/* Bottom Player (Me) */}
-            <div className="absolute bottom-4 w-full flex flex-col items-center z-20">
-                {/* My Discards */}
-                <div className="mb-4">
-                    {renderRiver(me)}
+            <div className="absolute bottom-4 w-full flex flex-col items-center z-10">
+                {/* My Discards - Closer to center (Top of hand area) */}
+                <div className="mb-8">
+                    {renderRiver(me, 0)}
                 </div>
 
-                <div className="relative flex justify-center items-end gap-8">
+                <div className="relative flex justify-center items-end gap-8 w-full max-w-5xl">
                     <Hand
                         tiles={me.hand}
                         isTurn={gameState.current_player_idx === 0 && gameState.phase === 'WAIT_DISCARD'}
@@ -212,11 +244,11 @@ const Table = () => {
                     />
                     {renderMelds(me)}
                 </div>
-                <div className="text-white mt-2 font-bold bg-black bg-opacity-50 px-4 py-1 rounded-full">
-                    {me.name} ({me.wind}) · Score: {me.score}
+                <div className="mt-2 px-6 py-2 bg-contain bg-center bg-no-repeat text-white font-bold text-shadow-md flex items-center justify-center w-56 h-10 text-sm" style={{ backgroundImage: "url('/score_plate.png')" }}>
+                    {me.name} ({me.wind}) · {me.score}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -69,7 +69,9 @@ def serialize_state(e: StepGameEngine) -> GameStateModel:
         dead_wall_count=len(e.state.dead_wall),
         phase=e.phase,
         last_discard=str(e.last_discard) if e.last_discard else None,
-        valid_actions=list(e.pending_responses.get(0, [])) + (['skip'] if 0 in e.pending_responses else []) if e.phase == "WAIT_RESPONSE" else []
+        last_discard_player_idx=e.last_discard_idx,
+        valid_actions=list(e.pending_responses.get(0, [])) + (['skip'] if 0 in e.pending_responses else []) if e.phase == "WAIT_RESPONSE" else [],
+        can_tsumo=getattr(e, 'can_tsumo', False)
     )
 
 def process_ai_turns(current_step):
@@ -200,6 +202,11 @@ def handle_action(req: ActionRequest):
         if "error" in res:
             raise HTTPException(status_code=400, detail=res["error"])
         
+    elif req.type == "tsumo":
+        res = engine.action_tsumo(req.player_idx)
+        if "error" in res:
+             raise HTTPException(status_code=400, detail=res["error"])
+
     elif req.type in ["ron", "pon", "kan", "chi", "skip"]:
         res = engine.action_response(req.player_idx, req.type, req.extra)
         if "error" in res:

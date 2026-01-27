@@ -77,15 +77,34 @@ class StepGameEngine:
             valid = [y for y, h in yakus if y != 'dora']
             if valid:
                 # Tsumo!
+                # Tsumo!
                 # If AI, take it.
-                if not player.name.startswith("Player"): # Heuristic, or use is_human flag
+                if player.name.startswith("Player") and player.name != "P1": # Heuristic: P1 is Human (name set in GameState)
                      res = handle_win(player, tile, 'tsumo')
                      self.phase = "GAME_OVER"
                      self.turn_result = {"type": "tsumo", "winner": self.state.current_player_idx, "tile": str(tile), "result": res}
                      return self.next_step()
-                # If Human, we should really offer Tsumo button. 
-                # For MVP, let's keep it simple: Human Tsumo is a 'response' or special event?
-                # We can set phase to "WAIT_DISCARD" but add a flag "can_tsumo"?
+                
+                # If Human (P1), enable Tsumo button but proceed to WAIT_DISCARD
+                if self.state.current_player_idx == 0:
+                    self.can_tsumo = True
+                    # Don't return yet, fall through to WAIT_DISCARD so user can choose to discard or tsumo
+                
+        # Move to DISCARD phase
+        self.phase = "WAIT_DISCARD"
+        return {"type": "input_required", "action": "discard", "player_idx": self.state.current_player_idx}
+
+    def action_tsumo(self, player_idx):
+        if self.phase != "WAIT_DISCARD": return {"error": "Not turn to tsumo"}
+        if player_idx != self.state.current_player_idx: return {"error": "Not your turn"}
+        if not hasattr(self, 'can_tsumo') or not self.can_tsumo: return {"error": "Cannot Tsumo"}
+        
+        player = self.state.players[player_idx]
+        tile = player.hand[-1] # Tsumo tile is last drawn
+        res = handle_win(player, tile, 'tsumo')
+        self.phase = "GAME_OVER"
+        self.turn_result = {"type": "tsumo", "winner": player_idx, "tile": str(tile), "result": res}
+        return self.next_step()
                 
         # Move to DISCARD phase
         self.phase = "WAIT_DISCARD"
@@ -116,6 +135,7 @@ class StepGameEngine:
              return {"error": "Invalid tile index"}
              
         tile = player.discard(tile_idx)
+        if hasattr(self, 'can_tsumo'): self.can_tsumo = False
         player.sort_hand() # Keep hand sorted
         
         self.last_discard = tile
